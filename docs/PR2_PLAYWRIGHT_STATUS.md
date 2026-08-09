@@ -1,0 +1,1 @@
+PR #2 Playwright status: current head 9bb4fb9015cc475e0bb388a1afc5fdc38300eb69 passed the deployed Vercel Playwright gate. CI evidence should thereafter remain in Actions artifacts and PR discussion rather than creating evidence-only commits.
