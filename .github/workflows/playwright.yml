@@ -35,7 +35,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Resolve Vercel preview URL
+      - name: Resolve successful Vercel preview
         env:
           GH_TOKEN: ${{ github.token }}
           MANUAL_BASE_URL: ${{ github.event.inputs.base_url }}
@@ -74,7 +74,7 @@ jobs:
           echo "### Playwright target" >> "$GITHUB_STEP_SUMMARY"
           echo "\`$url\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Wait for protected preview
+      - name: Verify automation bypass secret exists
         env:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         shell: bash
@@ -84,28 +84,6 @@ jobs:
             echo "::error::VERCEL_AUTOMATION_BYPASS_SECRET is missing from GitHub Actions secrets."
             exit 1
           fi
-
-          for attempt in $(seq 1 30); do
-            code="$(curl --max-time 20 -L -sS -o /tmp/trendy-preview.html -w '%{http_code}' \
-              -H "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}" \
-              -H 'x-vercel-set-bypass-cookie: true' \
-              "${PLAYWRIGHT_BASE_URL}/" || true)"
-
-            if [[ "$code" == "200" ]]; then
-              echo "Vercel preview is reachable."
-              exit 0
-            fi
-            if [[ "$code" == "401" || "$code" == "403" ]]; then
-              echo "::error::Vercel rejected the automation bypass secret (HTTP $code)."
-              exit 1
-            fi
-
-            echo "Preview returned HTTP ${code:-none}; retrying ($attempt/30)..."
-            sleep 10
-          done
-
-          echo "::error::Vercel preview did not become reachable in time."
-          exit 1
 
       - name: Run deployed browser playtests
         env:
