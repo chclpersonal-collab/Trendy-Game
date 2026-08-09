@@ -71,17 +71,69 @@ test('300-second deterministic browser self-play remains valid', async ({ page }
 test('natural siege sample produces fortress pressure', async ({ page }, testInfo) => {
   test.setTimeout(90000);
   await openGame(page);
-  const result = await page.evaluate(() => window.GameTest.sampleSeeds([21901, 21902, 21903], 600).map(x => ({
-    seed: x.seed,
-    validation: x.validation,
-    fortressHits: x.state.fortressHits,
-    siegePushes: x.state.siegePushes,
-    siegeSeconds: x.state.siegeSeconds,
-    breachFortDistance: x.state.breachFortDistance,
-    fortresses: x.state.fortresses,
-    commandIntegrity: x.state.commandIntegrity,
-    uncommanded: x.state.uncommanded
-  })));
+  const result = await page.evaluate(() => {
+    const seeds = [21901, 21902, 21903];
+    const output = [];
+    for (const seed of seeds) {
+      window.GameTest.setSeed(seed);
+      const minDistance = [Infinity, Infinity];
+      const activeSamples = [0, 0];
+      const lossReasons = [
+        { underStrength: 0, commanderDead: 0, commanderSeparated: 0, generalAbortOrReassignment: 0 },
+        { underStrength: 0, commanderDead: 0, commanderSeparated: 0, generalAbortOrReassignment: 0 }
+      ];
+      const assignmentsSeen = [new Set(), new Set()];
+      let previousIds = [-1, -1];
+
+      for (let sample = 0; sample < 120; sample++) {
+        window.GameTest.advance(5);
+        const state = window.GameTest.state();
+        const generals = window.__battleSim.test.generals();
+        const actors = window.__battleSim.test.actors();
+        const companySets = window.__battleSim.test.companies();
+
+        for (let team = 0; team < 2; team++) {
+          const id = state.breachCompanyIds[team];
+          const distance = state.breachFortDistance[team];
+          if (distance !== null) {
+            minDistance[team] = Math.min(minDistance[team], distance);
+            activeSamples[team]++;
+          }
+          if (id >= 0) assignmentsSeen[team].add(id);
+
+          const oldId = previousIds[team];
+          if (oldId >= 0 && id !== oldId) {
+            const oldCompany = companySets[team].find(c => c.id === oldId);
+            const men = actors.filter(a => a.alive && a.team === team && !a.isCommander && a.company === oldId).length;
+            const commander = actors.find(a => a.alive && a.team === team && a.isCommander && a.company === oldId) || null;
+            if (men < 6) lossReasons[team].underStrength++;
+            else if (!commander) lossReasons[team].commanderDead++;
+            else if (oldCompany && !window.__battleSim.test.commanderInCommand(oldCompany)) lossReasons[team].commanderSeparated++;
+            else if (generals[team].stance !== 'SIEGE' || id !== oldId) lossReasons[team].generalAbortOrReassignment++;
+          }
+          previousIds[team] = id;
+        }
+      }
+
+      const state = window.GameTest.snapshot();
+      output.push({
+        seed,
+        validation: window.GameTest.validate(),
+        fortressHits: state.fortressHits,
+        siegePushes: state.siegePushes,
+        siegeSeconds: state.siegeSeconds,
+        finalBreachFortDistance: state.breachFortDistance,
+        minBreachFortDistance: minDistance.map(v => Number.isFinite(v) ? v : null),
+        breachActiveSeconds: activeSamples.map(n => n * 5),
+        assignmentsSeen: assignmentsSeen.map(s => [...s]),
+        lossReasons,
+        commandIntegrity: state.commandIntegrity,
+        uncommanded: state.uncommanded,
+        fortresses: state.fortresses
+      });
+    }
+    return output;
+  });
   console.log(`NATURAL_SIEGE ${JSON.stringify(result)}`);
   await testInfo.attach('natural-siege-sample.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
   expect(result.every(x => x.validation.ok)).toBe(true);
