@@ -1,0 +1,13 @@
+{
+  "name": "trendy-game-playtests",
+  "version": "2.18.0",
+  "private": true,
+  "description": "Automated browser playtests for Trendy Game Vercel previews.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1"
+  }
+}
