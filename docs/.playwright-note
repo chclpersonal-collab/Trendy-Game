@@ -1,1 +1,0 @@
-Do not use this file for CI evidence. Future Playwright evidence belongs in GitHub Actions artifacts and PR comments to avoid triggering redundant Vercel deployments.

@@ -1,1 +1,0 @@
-Future Playwright run results should be reported via workflow artifacts and PR comments. Do not create a new repository commit only to record a successful CI result, because every push triggers another Vercel preview and Playwright cycle.
