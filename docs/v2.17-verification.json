@@ -100,10 +100,34 @@
       "result": "PASS"
     }
   },
+  "browser_playtest": {
+    "browser": "Chromium 144.0.7559.96",
+    "method": "Inject the exact assembled modular build into a fresh Chromium page, disable real-time RAF advancement, advance the real GameTest loop by exactly 300 simulated seconds, call draw(), center the horizontal battlefield near the current frontline, and capture the rendered page.",
+    "simulated_time_seconds": 300,
+    "validation_before": "PASS",
+    "validation_after": "PASS",
+    "rendered_battlefield_visible": true,
+    "observed": {
+      "kills": [51, 44],
+      "musketeers": [55, 47],
+      "uncommanded": [15, 2],
+      "command_integrity": [0.75, 1.0],
+      "siege_pushes": [1, 1],
+      "siege_seconds": [31.95, 76.45],
+      "fortress_hits": [0, 0]
+    },
+    "verified_constants": {
+      "siege_commit_duration_seconds": 85,
+      "breach_min_company_size": 6,
+      "breach_threat_range": 125,
+      "soldier_rejoin_complete_radius": 260
+    },
+    "result": "PASS_WITH_SCOPE_LIMITS"
+  },
   "known_limitations": [
-    "Natural 300-second seeded runs still produced zero fortress hits, so normal siege-to-fortress conversion is not proven fixed.",
+    "Natural 300-second seeded runs and the fresh 300-second Chromium playtest still produced zero fortress hits, so normal siege-to-fortress conversion is not proven fixed.",
     "Local uncommanded troop counts can still become high even though physical troop rejoin is active.",
-    "Reliable v2.17 visual browser gameplay verification remains incomplete; prior Chromium environment restrictions and an inconsistent CDP run prevent claiming a visual pass."
+    "Direct local-file/localhost navigation remains unreliable in the container; browser verification uses the established fresh-page injection workaround."
   ],
   "roadmap": {
     "current": "Phase 2 - E Class stabilization",
