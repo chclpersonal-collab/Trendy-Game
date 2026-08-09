@@ -82,6 +82,7 @@ test('natural siege sample produces fortress pressure', async ({ page }, testInf
     commandIntegrity: x.state.commandIntegrity,
     uncommanded: x.state.uncommanded
   })));
+  console.log(`NATURAL_SIEGE ${JSON.stringify(result)}`);
   await testInfo.attach('natural-siege-sample.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
   expect(result.every(x => x.validation.ok)).toBe(true);
   const totalHits = result.reduce((sum, x) => sum + x.fortressHits[0] + x.fortressHits[1], 0);
