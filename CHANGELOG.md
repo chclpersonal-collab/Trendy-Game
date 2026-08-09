@@ -24,6 +24,12 @@
 ### Deployment Infrastructure
 - Added Vercel root routing so the deployed preview opens the game at `/` instead of requiring `/game.html`.
 
+### Automated Browser Playtesting
+- Added Playwright 1.59.1 as the deployed-browser test runner.
+- Added GitHub Actions automation that waits for the matching Vercel preview, authenticates through Vercel Protection Bypass for Automation, and then tests the deployed page rather than a local HTML substitute.
+- Added deployed smoke/invariant checks, a deterministic 300-second browser self-play test, forced BREACH-to-fortress regression, and player-facing Pause/Resume/Speed/Front control checks.
+- Playwright retains traces, failure screenshots, failure video, reports, and deterministic state attachments as GitHub Actions artifacts for later inspection.
+
 ### Audit
 - All JavaScript files pass `node --check` after the v2.18 edits.
 - Three deterministic 300-second runs remain finite, preserve the 14-musketeer company cap, and preserve the 15-phase roadmap.

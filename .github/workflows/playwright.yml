@@ -1,0 +1,124 @@
+name: Playwright Vercel Playtest
+
+on:
+  push:
+    branches:
+      - 'update/**'
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Optional deployed URL to test instead of auto-discovery'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright test runner
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve Vercel preview URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_BASE_URL: ${{ github.event.inputs.base_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="${MANUAL_BASE_URL:-}"
+
+          if [[ -z "$url" ]]; then
+            for attempt in $(seq 1 36); do
+              deployments="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/deployments?sha=${GITHUB_SHA}&per_page=100")"
+              while read -r deployment_id; do
+                [[ -z "$deployment_id" ]] && continue
+                statuses="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses?per_page=20")"
+                candidate="$(jq -r '[.[] | select(.state == "success") | (.environment_url // .target_url // "") | select(contains("vercel.app"))][0] // empty' <<<"$statuses")"
+                if [[ -n "$candidate" ]]; then
+                  url="$candidate"
+                  break
+                fi
+              done < <(jq -r '.[].id' <<<"$deployments")
+
+              [[ -n "$url" ]] && break
+              echo "Waiting for Vercel deployment status ($attempt/36)..."
+              sleep 10
+            done
+          fi
+
+          if [[ -z "$url" ]]; then
+            branch_slug="$(printf '%s' "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g; s/\.//g; s/[^a-z0-9-]//g')"
+            url="https://trendy-game-git-${branch_slug}-chclpersonal-9731s-projects.vercel.app"
+            echo "No deployment_status URL was found; using branch alias fallback: $url"
+          fi
+
+          url="${url%/}"
+          echo "PLAYWRIGHT_BASE_URL=$url" >> "$GITHUB_ENV"
+          echo "### Playwright target" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$url\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for protected preview
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ]]; then
+            echo "::error::VERCEL_AUTOMATION_BYPASS_SECRET is missing from GitHub Actions secrets."
+            exit 1
+          fi
+
+          for attempt in $(seq 1 30); do
+            code="$(curl --max-time 20 -L -sS -o /tmp/trendy-preview.html -w '%{http_code}' \
+              -H "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}" \
+              -H 'x-vercel-set-bypass-cookie: true' \
+              "${PLAYWRIGHT_BASE_URL}/" || true)"
+
+            if [[ "$code" == "200" ]]; then
+              echo "Vercel preview is reachable."
+              exit 0
+            fi
+            if [[ "$code" == "401" || "$code" == "403" ]]; then
+              echo "::error::Vercel rejected the automation bypass secret (HTTP $code)."
+              exit 1
+            fi
+
+            echo "Preview returned HTTP ${code:-none}; retrying ($attempt/30)..."
+            sleep 10
+          done
+
+          echo "::error::Vercel preview did not become reachable in time."
+          exit 1
+
+      - name: Run deployed browser playtests
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npm run test:e2e
+
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidence-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

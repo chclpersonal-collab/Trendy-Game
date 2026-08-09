@@ -22,9 +22,10 @@
 - Continue reducing pathological long-lived local-command stragglers without making command range meaningless.
 - Continue improving natural siege-to-fortress conversion without making fortresses trivial.
 - Use persistent BREACH telemetry to determine whether assault stalls come from travel time, commander loss, or local enemy pressure.
+- Use deployed Playwright/Vercel evidence as the browser regression gate before calling a candidate verified.
 - Continue experimental pricing calibration through patches 13–15.
 - Keep only Commander Form I — Shii-Cho active until the current combat layer is stable.
 
 ## Next planned update
 
-Phase 2 v2.19 / Experimental Pricing Patch 13/15: evaluate v2.18 Vercel-browser and self-play evidence, especially whether the 110-second persistent BREACH produces natural fortress pressure and whether the 350-unit local command radius meaningfully reduces detached troops. Do not advance to D Class until Phase 2 is judged stable.
+Phase 2 v2.19 / Experimental Pricing Patch 13/15: evaluate v2.18 deployed Playwright, Vercel-browser, and self-play evidence, especially whether the 110-second persistent BREACH produces natural fortress pressure and whether the 350-unit local command radius meaningfully reduces detached troops. Do not advance to D Class until Phase 2 is judged stable.
