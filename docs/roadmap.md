@@ -20,12 +20,13 @@
 
 - Validate the 30-second musket reload / counter-charge / BRACE battle rhythm.
 - Continue reducing pathological long-lived local-command stragglers without making command range meaningless.
-- Continue improving natural siege-to-fortress conversion without making fortresses trivial.
-- Use persistent BREACH telemetry to determine whether assault stalls come from travel time, commander loss, or local enemy pressure.
+- Verify whether v2.19's BREACH reload-pressure fix creates natural siege-to-fortress conversion without making fortresses trivial.
+- Use persistent BREACH distance, siege-time, command-integrity and fortress-hit telemetry to distinguish travel stalls from combat stalls.
 - Use deployed Playwright/Vercel evidence as the browser regression gate before calling a candidate verified.
-- Continue experimental pricing calibration through patches 13–15.
+- Keep the GitHub/Vercel/Playwright loop efficient: narrow source reads, one batched functional push per candidate, maximum 60-second deployment polling, cancel superseded CI, and do not run browser CI for documentation-only changes.
+- Continue experimental pricing calibration through patches 14–15.
 - Keep only Commander Form I — Shii-Cho active until the current combat layer is stable.
 
 ## Next planned update
 
-Phase 2 v2.19 / Experimental Pricing Patch 13/15: evaluate v2.18 deployed Playwright, Vercel-browser, and self-play evidence, especially whether the 110-second persistent BREACH produces natural fortress pressure and whether the 350-unit local command radius meaningfully reduces detached troops. Do not advance to D Class until Phase 2 is judged stable.
+Phase 2 v2.20 / Experimental Pricing Patch 14/15: use the v2.19 natural-siege sample and human Vercel playtest to decide whether the 92-unit BREACH pressure line should be held, tuned, or reverted. Continue command/cohesion stabilization. Do not advance to D Class until Phase 2 is judged stable.

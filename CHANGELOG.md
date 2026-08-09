@@ -1,5 +1,25 @@
 # Changelog
 
+## Phase 2 v2.19 — BREACH Reload Pressure / Faster Verification
+
+### Experimental Pricing Patch 13/15
+- Hold: F $10, E $32, base passive income $10/s, F bounty $5, E bounty $16, upkeep 1.60% of living army value/s.
+
+### Bug Fix / Siege Rework
+- Fixed a BREACH range mismatch: `breachEnemy()` only selects threats within 125 units, while the previous BREACH advance condition required a threat farther than about 160 units. That condition could never be reached once a BREACH threat was selected.
+- Reloading F musketeers on BREACH now physically press toward a 92-unit assault line instead of freezing or backing away during most of the 30-second reload cycle.
+- Loaded BREACH troops use the same close-pressure line before firing; E automatic bayonet charging is unchanged.
+- Kept the 110-second siege commitment, persistent BREACH assignment, 82-unit rear-emergency turn, 350-unit local command radius, and 285-unit rejoin threshold unchanged so the new pressure behavior can be isolated.
+- Added current BREACH-to-fortress distance to the internal state for diagnostics.
+
+### Verification / Process Efficiency
+- Added a deterministic three-seed 600-second natural-siege Playwright gate. The candidate must produce at least one natural fortress hit across the sample while preserving all invariants.
+- Reduced Vercel deployment polling from a possible 6 minutes to at most 60 seconds before branch-alias fallback.
+- Reduced the Actions job timeout from 20 minutes to 10 minutes.
+- Added per-branch Actions concurrency so a newer branch push cancels an obsolete in-progress playtest.
+- Restricted automatic Playwright runs to runtime/test/workflow paths; documentation-only changes no longer launch another browser test cycle.
+- Continue using one batched functional commit per candidate whenever possible.
+
 ## Phase 2 v2.18 — Persistent BREACH / Command Radius Tune
 
 ### Experimental Pricing Patch 12/15

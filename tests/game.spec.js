@@ -38,8 +38,10 @@ test('deployed preview boots and preserves core invariants', async ({ page }, te
   expect(result.validation.maxPerCommander).toBe(14);
   expect(result.validation.roadmapCount).toBe(15);
   expect(result.state.phase).toBe(2);
+  expect(result.state.economy.patch).toBe(13);
   expect(result.state.command.maxMusketeers).toBe(14);
   expect(result.state.command.musket.baseReload).toBe(30);
+  expect(result.state.command.siegeEscalation.breachPressRange).toBe(92);
   expect(result.state.command.lightsaberForm.forms).toEqual(CANONICAL_FORMS);
   expect(await page.title()).toContain(result.state.version);
   expect(diagnostics.pageErrors).toEqual([]);
@@ -49,7 +51,7 @@ test('deployed preview boots and preserves core invariants', async ({ page }, te
 test('300-second deterministic browser self-play remains valid', async ({ page }, testInfo) => {
   await openGame(page);
   const result = await page.evaluate(() => {
-    window.GameTest.setSeed(21818);
+    window.GameTest.setSeed(21918);
     const state = window.GameTest.advance(300);
     return { state, validation: window.GameTest.validate() };
   });
@@ -66,10 +68,30 @@ test('300-second deterministic browser self-play remains valid', async ({ page }
   await testInfo.attach('state-300s.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
 });
 
+test('natural siege sample produces fortress pressure', async ({ page }, testInfo) => {
+  test.setTimeout(90000);
+  await openGame(page);
+  const result = await page.evaluate(() => window.GameTest.sampleSeeds([21901, 21902, 21903], 600).map(x => ({
+    seed: x.seed,
+    validation: x.validation,
+    fortressHits: x.state.fortressHits,
+    siegePushes: x.state.siegePushes,
+    siegeSeconds: x.state.siegeSeconds,
+    breachFortDistance: x.state.breachFortDistance,
+    fortresses: x.state.fortresses,
+    commandIntegrity: x.state.commandIntegrity,
+    uncommanded: x.state.uncommanded
+  })));
+  await testInfo.attach('natural-siege-sample.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
+  expect(result.every(x => x.validation.ok)).toBe(true);
+  const totalHits = result.reduce((sum, x) => sum + x.fortressHits[0] + x.fortressHits[1], 0);
+  expect(totalHits).toBeGreaterThan(0);
+});
+
 test('controlled BREACH converts into real fortress damage', async ({ page }, testInfo) => {
   await openGame(page);
   const result = await page.evaluate(() => {
-    window.GameTest.setSeed(21819);
+    window.GameTest.setSeed(21919);
     window.GameTest.forceBreach(0, 0, true);
     const before = window.GameTest.snapshot();
     const after = window.GameTest.advance(1);
@@ -98,7 +120,7 @@ test('player-facing controls work on the deployed build', async ({ page }) => {
   await speedButton.click();
   await expect(speedButton).toHaveText('Speed 1×');
   await page.evaluate(() => {
-    window.GameTest.setSeed(21820);
+    window.GameTest.setSeed(21920);
     window.GameTest.advance(20);
     document.getElementById('fieldWrap').scrollLeft = 0;
   });

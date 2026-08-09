@@ -4,12 +4,25 @@ on:
   push:
     branches:
       - 'update/**'
+    paths:
+      - 'game.html'
+      - 'styles.css'
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'playwright.config.cjs'
+      - 'vercel.json'
+      - '.github/workflows/playwright.yml'
   workflow_dispatch:
     inputs:
       base_url:
         description: 'Optional deployed URL to test instead of auto-discovery'
         required: false
         type: string
+
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -18,7 +31,7 @@ permissions:
 jobs:
   playtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -45,7 +58,7 @@ jobs:
           url="${MANUAL_BASE_URL:-}"
 
           if [[ -z "$url" ]]; then
-            for attempt in $(seq 1 36); do
+            for attempt in $(seq 1 12); do
               deployments="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/deployments?sha=${GITHUB_SHA}&per_page=100")"
               while read -r deployment_id; do
                 [[ -z "$deployment_id" ]] && continue
@@ -58,15 +71,15 @@ jobs:
               done < <(jq -r '.[].id' <<<"$deployments")
 
               [[ -n "$url" ]] && break
-              echo "Waiting for Vercel deployment status ($attempt/36)..."
-              sleep 10
+              echo "Waiting for Vercel deployment status ($attempt/12)..."
+              sleep 5
             done
           fi
 
           if [[ -z "$url" ]]; then
             branch_slug="$(printf '%s' "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' | sed 's#/#-#g; s/\.//g; s/[^a-z0-9-]//g')"
             url="https://trendy-game-git-${branch_slug}-chclpersonal-9731s-projects.vercel.app"
-            echo "No deployment_status URL was found; using branch alias fallback: $url"
+            echo "No successful deployment_status URL was found within 60 seconds; using branch alias fallback: $url"
           fi
 
           url="${url%/}"
