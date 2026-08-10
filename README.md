@@ -6,23 +6,99 @@ Autonomous two-army musketeer battle simulation developed on the single rolling 
 
 - **Phase 1 / F Class:** STABLE
 - **Phase 2 / E Class:** STABLE
-- **Current:** Phase 3 **v3.1 — Adaptive Company Cohesion**
+- **Current:** Phase 3 **v3.1.1 — Command Continuity / Coordinated Withdrawal**
 - **Status:** **AUTOMATED VERIFIED CANDIDATE**
-- **Latest verified deployed gameplay HEAD:** `b207d8ff686a14e736a5a8f868984272187b6348`
-- **Protected Playwright run:** `31355086417` — **14/14 passed**
-- **Protected Vercel preview:** `trendy-game-m98ojans8-chclpersonal-9731s-projects.vercel.app`
-- **Army foundation:** 0 starting musketeers, 150-musketeer hard ceiling per side
-- **Pricing calibration:** 15/15 complete
+- **Exact verified deployed HEAD:** `d79cbcf36fadd375125b8c5b0ad30f3117fe3dc6`
+- **Protected Playwright run:** `31358519582` — **20/20 passed**
+- **Protected Vercel preview:** `trendy-game-k8cush2ly-chclpersonal-9731s-projects.vercel.app`
+- **Evidence artifact:** `9051555549`
+- **Army foundation:** 0 starting musketeers; 150-musketeer hard ceiling per side
+- **Adaptive companies:** commanders choose 2–14 soldiers; 11 companies maximum per army
 - **Commander Form I / Shii-Cho:** STABLE
-- **Form II / Makashi:** DEFERRED while v3.1 siege-pressure evidence is audited
+- **Form II / Makashi:** next commander-form candidate, still locked during this stabilization patch
 
-## v3.1 — Adaptive Company Cohesion
+## v3.1.1 — Command Continuity / Coordinated Withdrawal
 
-Commanders no longer treat 14 musketeers as the default working company size. Each commander chooses a **target load from 2–14 musketeers**, creating a real tradeoff between tight command and battlefield mass.
+### Bug Fix — commander retreat is not commander death
 
-### Commander company-size choices
+The old command model used the tight **180-unit commander/company proximity radius** as if losing that spacing meant losing command. This could make soldiers appear uncommanded or panicked simply because their living commander had moved away during regrouping or withdrawal.
 
-Mission posture influences the size a new commander prefers:
+v3.1.1 separates two concepts:
+
+- **Morale / command authority:** an original living commander remains the company's authority while alive, even if temporarily outside the 180-unit tight-cohesion radius.
+- **Local tactical control:** detailed soldier orders still require the established **350-unit local soldier-command radius**.
+
+So a living commander moving away does **not** make the company mentally collapse, but this is also **not global radio command**. Soldiers outside local tactical range hold/regroup coherently while the commander closes the distance.
+
+### Commander death still causes real disruption
+
+Commander death remains the actual command-loss event.
+
+- soldiers can become genuinely uncommanded/panicked after the commander dies
+- command integrity falls when the company has no active command source
+- an unjoined replacement commander does not immediately restore authority
+- the replacement must physically reach the company before `joinedCommand` becomes true
+- BREACH viability also remains unavailable until that physical replacement joins
+
+This preserves the physical replacement invariant while removing false command collapse from ordinary commander movement.
+
+### Bug Fix — commander no longer retreats alone
+
+`RALLY` and rearward `DEFEND` are now coordinated company withdrawals.
+
+During an active withdrawal:
+
+- the commander uses the company center as the withdrawal reference instead of abandoning the formation
+- commander guard/combat distractions are suppressed while the withdrawal movement is active
+- soldiers and commander move rearward together
+- a living commander continues to provide morale authority during the movement
+- E/D soldiers do not launch a fresh autonomous bayonet charge while under RALLY/REGROUP withdrawal behavior
+
+### Visual / Movement Bug Fix — no retreat moonwalking
+
+Backward-moving soldiers and commanders now turn to face the direction they are actually moving.
+
+This applies to:
+
+- RALLY withdrawal
+- rearward DEFEND movement
+- panic retreat
+- disarm retreat
+- close-range fallback movement
+- commander rearward movement
+
+The renderer draws the musket, bayonet, saber, and attack effects from the actor's `facing` value, so this is a visible sprite-direction fix rather than telemetry-only state.
+
+### Bug Fix — adaptive-company rebuilding now respects chosen size
+
+v3.1 introduced commander-selected 2–14 soldier companies, but the old rebuild thresholds were still fixed at 4 soldiers to enter rebuild and 8 to recover. A fully staffed 2–4 man command could therefore be treated as permanently depleted and remain in RALLY.
+
+v3.1.1 scales rebuild thresholds relative to the commander's chosen target size.
+
+Examples verified by regression:
+
+- target **2** → rebuild at **1**, ready again at **2**
+- target **14** → rebuild at **4**, ready again at **8**, preserving the previous large-company behavior
+
+### Audit / UI — siege-blocked emergency recovery
+
+A long-run economy sample produced a wiped Left army with about **$2,304.97** still in treasury. The economy remained finite and below the existing $3,000 automated ceiling, but a rich 0-soldier army looked suspicious.
+
+The recovery code was audited and the player-facing budget state is now explicit:
+
+- if an army has fewer than 7 soldiers and recruitment is possible → **RECOVER F**
+- if a viable enemy BREACH is blocking the fieldwork → **MUSTER BLOCKED**
+- once that BREACH is relieved → emergency F recruitment resumes immediately
+
+A targeted deployed regression reproduces a **0-soldier / $2,305** defender under a viable six-man enemy BREACH, proves recruitment is blocked and labeled `MUSTER BLOCKED`, then relieves the siege and proves the General immediately buys 3 F musketeers under `RECOVER F`.
+
+This does **not** weaken the existing fieldwork logistics rule. An overrun fieldwork still blocks paid reinforcement.
+
+## v3.1 — Adaptive Company Cohesion foundation
+
+Commanders choose a target load from **2–14 musketeers** rather than defaulting to 14.
+
+Mission preference bands remain:
 
 - **BUILD:** 2–6
 - **DEFEND:** 4–8
@@ -30,171 +106,122 @@ Mission posture influences the size a new commander prefers:
 - **ATTACK:** 8–12
 - **SIEGE:** 10–14
 
-High upkeep pressure can push new companies toward smaller targets. The choice is not a permanent hard lock: if all 11 company slots are occupied and the General still needs troops, existing commanders can expand their target loads one soldier at a time up to 14. This preserves the absolute path to the 150-musketeer army ceiling.
-
-The runtime labels company doctrine as:
-
-- **LEAN:** target 2–5
-- **BALANCED:** target 6–10
-- **MASS:** target 11–14
+High upkeep can push new commands smaller. If all 11 company slots exist and more soldiers are needed, existing targets may expand toward 14.
 
 ### Cohesion tradeoff
 
-Cohesion scales continuously with the **current living company load**, from a factor of **1.22 at 2 soldiers** to **0.84 at 14 soldiers**.
+Cohesion scales with living company load from about **1.22 at 2 soldiers** to **0.84 at 14 soldiers**.
 
-Smaller companies gain:
+Smaller commands gain:
 
-- tighter longitudinal spacing before cohesion correction begins
-- faster formation/reform movement
-- faster commander decision cadence
-- faster synchronization when they have enough musketeers to execute a formal volley
+- tighter spacing
+- faster formation recovery
+- faster commander decisions
+- faster formal-volley synchronization
 
-Larger companies trade some cohesion for:
+Larger commands gain:
 
 - more simultaneous musket mass
 - greater attrition depth
-- easier access to formal volleys, which require at least 4 ready musketeers
-- counter-charge eligibility, which requires at least 5 company musketeers
-- BREACH/spearhead viability, which requires at least 6 company musketeers
+- easier threshold access: formal volley at 4 ready musketeers, counter-charge evaluation at 5, BREACH viability at 6
 
-No raw musket damage, global reload, or generic accuracy bonus was added to small companies. The advantage is command quality rather than free damage.
+Small companies receive no free raw damage, generic aim bonus, or global reload bonus.
 
-### Structural limit
+## Army / rank foundations preserved
 
-- **2–14** chosen target musketeers per commander/company
-- **14** remains the hard living-musketeer maximum for one company
-- **11 companies maximum per army**
-- **150 musketeers maximum per army**
-- commanders remain separate from the 150-musketeer count
-
-Small-company doctrine therefore consumes scarce company/commander slots faster; commanders cannot create unlimited tiny squads to bypass the intended tradeoff.
-
-## Army foundation — zero start / 150 maximum
-
-Every new war begins with:
-
-- **0 musketeers on the Left**
-- **0 musketeers on the Right**
-- one initial commander/company structure per side
-- starting treasury **$175 per General**
-
-The General AI builds its fighting force through the economy rather than receiving free musketeers at reset.
-
-The 150 value is a **ceiling, not an AI target**. Force size still depends on enemy strength, strategy, treasury, reserves, and upkeep.
-
-The army-wide cap is checked before company capacity. A permanent regression buys 151 musketeers with effectively unlimited treasury and proves exactly 150 succeed while the 151st is rejected.
-
-## D Class / Assault Drill
-
-D remains the current Phase-3 musketeer rank.
-
-- Direct price: **$80**
-- Earned promotion: **E → D at 10 total XP**
-- Direct D starts at the **10 XP / D·0 floor**
-- Kill bounty: **$40** under the 50%-of-rank-price rule
-- D inherits E's automatic bayonet charge without extra bayonet damage
+- fresh war: **0 musketeers per side**
+- maximum: **150 musketeers per army**
+- commanders are separate from the 150-musketeer count
+- commander/company target: **2–14 soldiers**
+- hard company maximum: **14 living musketeers**
+- hard army company maximum: **11**
+- F price **$10**, E **$32**, D **$80**
+- passive income **$10/s**
+- bounty rate **50% of defeated musketeer rank price**
+- living-army upkeep **1.60% of army value/s**
+- musket base reload **30 seconds**
+- F→E at **4 XP**
+- E→D at **10 XP**
 - every earned XP restores **20 HP**, capped at full health
+- D Assault Drill remains limited to SIEGE / BREACH / commander CHARGE
+- only F / E / D are unlocked in Phase 3
 
-D's special Assault Drill activates only under:
+## Final deployed verification — v3.1.1
 
-- `SIEGE`
-- `BREACH`
-- commander `CHARGE`
+Exact run `31358519582` tested Vercel preview `trendy-game-k8cush2ly-chclpersonal-9731s-projects.vercel.app` at exact HEAD `d79cbcf36fadd375125b8c5b0ad30f3117fe3dc6`.
 
-While active, D receives **+3.5 percentage points musket aim**, a **2-second reload drill bonus**, and a **25-second D reload floor** after veteran effects. Outside those orders D uses an E-equivalent veteran combat baseline. The global musket base reload remains **30 seconds**.
+**Result: 20 / 20 Playwright tests passed in about 4.2 minutes.**
 
-Routine D target outside SIEGE remains 0%; SIEGE target remains up to about 8%, and direct D procurement remains a funded siege top-off rather than the default replacement tier.
+The gate includes:
 
-## Economy preservation
+1. v3.1.1 metadata / command-authority model
+2. adaptive 2–14 rebuild thresholds
+3. MUSTER BLOCKED → RECOVER F after siege relief
+4. zero-soldier start / 150 cap
+5. small-vs-large cohesion tradeoff
+6. 151st-purchase rejection
+7. direct and earned D progression
+8. Phase-2 F/E economy compatibility
+9. D Assault Drill activation
+10. funded SIEGE D procurement
+11. 300-second autonomous self-play
+12. 4 × 600-second economy calibration
+13. 9 × 900-second natural-siege acceptance
+14. physical commander return
+15. fieldwork recruitment block/reopen
+16. controlled BREACH fortress damage
+17. Pause / Speed / Front controls
+18. living-commander separation vs commander-death command loss
+19. coordinated RALLY retreat + visible facing direction
+20. physical replacement joining before command/BREACH restoration
 
-The established F/E/D economy remains unchanged by v3.1:
-
-- F price-quality contribution: **0**
-- E contribution: **1**
-- D bounded contribution: **1.5**
-- D's full **$80** value counts toward upkeep
-- base passive income: **$10/s**
-- living-army upkeep: **1.60% of army value/s**
-- bounty rate: **50% of defeated musketeer rank price**
-
-A regression still proves a 14-F + 1-E army receives rank bonus `1/15` and price-quality bonus `1/15`.
-
-## v3.1 deployed verification
-
-Exact run `31355086417` tested the protected Vercel preview from gameplay HEAD `b207d8ff686a14e736a5a8f868984272187b6348` and passed **14/14** Playwright tests in about **5.1 minutes** of browser-test execution.
-
-The deployed gate proves:
-
-- fresh wars still start at 0 / 0 musketeers
-- commanders carry valid adaptive 2–14 target loads
-- small-company cohesion metrics are stronger than large-company metrics
-- large companies retain BREACH/mass eligibility advantages
-- the 151st musketeer is still rejected
-- no company exceeds 14 musketeers and no army exceeds 11 companies / 150 musketeers
-- D direct/earned progression and Assault Drill remain valid
-- F/E economy compatibility remains intact
-- autonomous 300-second self-play remains finite
-- fieldwork recruitment blocking/reopening remains valid
-- separated commanders still return physically
-- controlled BREACH still damages fortresses
-- Pause / Speed / Front controls still work
-- the 15-phase roadmap remains intact
-
-### Adaptive-company economy audit — 4 × 600 seconds
+### Economy audit — 4 × 600 seconds
 
 Seeds 32101–32104 all preserved technical invariants.
 
-- peak living armies: **50–59**
-- peak company counts: **7–11**
-- maximum sampled D share: about **5.56%**
-- company targets naturally spanned small, medium, and large values, including targets from **3 through 14** in the four-seed sample
-- highest sampled treasury: about **$1,474.37** in seed 32103
+- peak living army: **66**
+- peak companies: **11**
+- maximum sampled D share: about **6.45%**
+- highest sampled treasury: about **$2,304.97**, seed 32103
+- seed 32103 ended at **0 / 32 living musketeers** with the Left E fortress damaged to about **6257.57 / 6500**
 
-The treasury result remains below the test ceiling of $3,000 and is technically bounded, but it is materially higher than the earlier zero-start sample and remains a **balance observation**, not proof that the economy is perfectly calibrated.
+The high treasury remains a recorded balance/operational observation rather than being hidden. The dedicated muster-block regression proves that siege logistics can legitimately create a rich-but-unable-to-recruit state and that recruitment resumes after relief.
 
-### Adaptive-company natural siege — 9 × 900 seconds
+### Natural siege audit — same 9 × 900-second seeds
 
-Seeds 32201–32209 all remained finite and valid, stayed below 150 musketeers, and never exceeded 11 companies.
+The same seeds 32201–32209 used for v3.1 were replayed after the command-continuity/rebuild fixes.
 
-Natural company target selections included the full intended spectrum, including naturally selected **2-soldier** target companies in several seeds.
+Only **seed 32207** produced fortress damage:
 
-Two seeds converted naturally into fortress damage:
+- Left fortress hits: **2**
+- minimum Left BREACH distance: about **214.155**
+- Right E fortress: **6500 → about 6486.27 HP**
+- peak armies: **59 / 63**
+- peak company counts: **11 / 10**
 
-- **Seed 32205:** Right produced **6 fortress hits**, reached about **214.324** minimum BREACH distance, and reduced the Left E fortress from 6500 HP to about **6454.65**. Peak armies were **60 / 59** and peak company counts were **11 / 10**.
-- **Seed 32206:** Left produced **117 fortress hits**, reached about **214.194** minimum BREACH distance, and reduced the Right F fortress from 4500 HP to about **3575.58**. Peak armies were **61 / 58** and peak company counts were **11 / 10**.
+The other eight seeds produced zero fortress hits.
 
-The other seven seeds produced zero fortress hits.
+This is a meaningful stabilization result: v3.1 produced **123 combined fortress hits** in the same nine-seed audit, including a 117-hit seed. v3.1.1 produced **2 total hits**. The 117-hit sustained-BREACH warning therefore **did not reproduce**, while natural fortress conversion remains possible.
 
-Seed 32206 proves that adaptive companies can sustain a long successful breach, but **117 hits is an intentionally recorded balance warning**. It does not violate technical invariants or destroy the fortress in the sample, yet siege-pressure severity should be audited before stacking another commander combat system on top.
+## Failed / corrected evidence retained
 
-## Rejected / corrected evidence
+- v3.1.1 run `31358114685`: **19/20 passed**. The sole failure was a new MUSTER BLOCKED test that forgot to set the attacker company's target to the intended six-man BREACH configuration. The already-existing fieldwork blockade regression passed in that same run. The test setup was corrected; no gameplay workaround was added.
+- earlier universal-passive-D candidates remain rejected because they suppressed natural siege and/or altered the established E economy.
+- the old separated-commander soldier fallback remains rejected because it created rejoin churn and erased natural siege conversion.
 
-Failed and superseded candidates remain recorded rather than hidden:
+## Hard command / movement invariants
 
-1. Universal passive D drill + raw F→D economy normalization — rejected for changing the established E economy and suppressing natural siege.
-2. Universal passive D combat advantage with restored F/E economy — still suppressed natural siege and was rejected.
-3. Accepted D redesign — Assault Drill is conditional on assault orders and AI D procurement is siege-only funded top-off.
-4. First zero-start test run `31353568973` — 12/13 passed; its only failure was an initial-state test-timing mistake, later corrected without a gameplay workaround.
-
-## Preserved systems / hard invariants
-
-- 15-phase class roadmap remains intact
-- every war's musketeer default is **0 per side**
-- maximum **150 musketeers per army**
-- commanders choose company targets from **2–14 musketeers**
-- maximum **14 living musketeers per commander/company**
-- maximum **11 companies per army**
-- commanders do **not** count against the 150-musketeer cap
-- global musket base reload remains **30 seconds**
-- F permanent melee is not introduced; F melee remains temporary low-power commander counter-charge behavior
-- E retains autonomous bayonet charge; D inherits it rather than replacing it
-- command remains local and regrouping/commander replacement remains physical
-- base company command radius 180, individual soldier command radius 350, and rejoin completion radius 285 remain unchanged
-- 110-second committed siege baseline and BREACH progress logic remain intact
-- fieldwork paid-recruitment blocking remains intact
-- fortress progression remains F → E; no D fortress is bundled into Phase 3
-- Form I remains Shii-Cho; canonical Form II–VII identities are preserved
-- only F/E/D are unlocked in Phase 3
+- living original commander retreat/spacing does **not** by itself cause morale collapse
+- detailed tactical orders remain local; individual soldier tactical radius stays **350**
+- tight commander/company proximity remains **180** as a proximity/cohesion measurement
+- commander death causes command disruption
+- replacement commanders must physically join before restoring authority
+- RALLY/rearward DEFEND move commander and soldiers together
+- units moving backward face their movement direction
+- fieldwork paid-recruitment blockade remains intact
+- BREACH still requires at least 6 company musketeers plus an active command source
+- committed siege baseline and fortress mechanics remain intact
+- Form I remains Shii-Cho; Form II Makashi remains locked in this patch
 
 ## Branch policy
 
@@ -207,8 +234,8 @@ Do not create version-specific development branches. Legacy `update/v2.17`, `upd
 
 1. **F Class — STABLE**
 2. **E Class — STABLE**
-3. **D Class — NOW: v3.1 automated verified candidate**
-4. **C Class — NEXT CLASS, locked until D / company-cohesion pressure stabilizes**
+3. **D Class — NOW: v3.1.1 automated verified candidate**
+4. **C Class — NEXT CLASS, still locked during Phase-3 commander-form stabilization**
 5. B Class
 6. A Class
 7. S Class
@@ -223,11 +250,11 @@ Do not create version-specific development branches. Legacy `update/v2.17`, `upd
 
 ### Near-term Phase 3 roadmap
 
-- **v3.1:** Adaptive Company Cohesion — deployed gate passed 14/14
-- **v3.2 candidate:** audit sustained siege pressure and the high-treasury outlier before adding another combat multiplier
-- **Form II — Makashi:** still the next commander-form candidate, but deferred until the v3.1 siege-pressure audit is satisfactory
-- **C Class:** remains locked until Phase-3 command/economy behavior is stable
-- continue using the 150-soldier population space for healthy rank ecology rather than forcing every army toward the cap
+- **v3.1.1:** Command Continuity / Coordinated Withdrawal — automated gate passed 20/20
+- **next candidate:** Form II — **Makashi**, now that the 117-hit v3.1 siege outlier no longer reproduces in the same nine-seed audit
+- continue tracking siege-blocked treasury accumulation as an operational/economy observation rather than weakening fieldwork logistics
+- **C Class:** remains locked until the next Phase-3 commander-form slice is isolated and verified
+- maintain healthy future rank ecology inside the 150-soldier army space rather than making every higher class exponentially invisible
 
 ## Verification / acceptance policy
 
