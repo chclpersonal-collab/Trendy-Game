@@ -10,7 +10,7 @@ async function openGame(page){
 test('primary game UI is battle-first and development chrome is removed',async({page},testInfo)=>{
   await openGame(page);
   await expect(page.locator('header .title')).toHaveText('Musketeer Battle Simulator');
-  await expect(page.locator('header .version')).toHaveText('v3.2');
+  await expect(page.locator('header .version')).toHaveText('v3.2.1');
   await expect(page.locator('.card')).toHaveCount(0);
   await expect(page.getByText('Phase 3 Rules',{exact:true})).toHaveCount(0);
   await expect(page.getByText('Commander Forms',{exact:true})).toHaveCount(0);
