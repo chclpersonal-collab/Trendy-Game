@@ -1,5 +1,94 @@
 # Changelog
 
+## Phase 3 v3.2.1 — Rank Ecology / Elite Siege Discipline
+
+### Balance Rework — Separate E and D Ecology
+- Reworked General procurement so **E and D are independent rank layers** instead of one combined elite-share bucket.
+- Intended hierarchy is **F majority / E regular / D rare-visible**.
+- E target shares are **18% BUILD, 18% DEFEND, 20% CONTEST, 24% ATTACK, 26% SIEGE**.
+- D target shares are **3% BUILD, 3% DEFEND, 4% CONTEST, 5% ATTACK, 6% SIEGE**.
+- Non-SIEGE D purchasing requires a mature army of at least **18** musketeers.
+- The established funded SIEGE D top-off remains available from **12** musketeers.
+- Recovery below 7 musketeers remains F-first.
+- This intentionally retires the old v3.0 rule that routine D procurement outside SIEGE is always zero; the change is classified because user playtesting showed D had become practically mythical.
+
+### Preserved Progression / Economy
+- F→E remains **4 earned XP**.
+- E→D remains **10 total XP**.
+- XP healing remains **+20 HP per earned XP**.
+- Prices remain **F $10 / E $32 / D $80**.
+- Passive income remains **$10/s**.
+- Bounty remains **50% of defeated-rank price**.
+- Living-army upkeep remains **1.60% of army value/s**.
+- D's ordinary combat baseline and Assault Drill values were not buffed.
+
+### Bug Fix / Command Rework — Elite Siege Discipline
+- The first ecology candidate exposed an old order conflict: autonomous E/D bayonet initiation is evaluated before BREACH-specific movement.
+- With a healthier E/D population, this caused siege spearheads to repeatedly abandon explicit BREACH movement for fresh autonomous charges.
+- E/D soldiers under explicit **SIEGE or BREACH** now suppress only the start of a fresh autonomous bayonet charge.
+- A charge already in progress may finish.
+- Ordinary autonomous E/D bayonet behavior outside SIEGE/BREACH remains unchanged.
+- This is consistent with existing BRACE/RALLY command discipline and allows D Assault Drill to function under the siege orders it was designed around.
+
+### Audit — User Rank-Rarity Observation
+- User screenshot at about 2027 simulation seconds showed Left **39 troops / 3 E / 0 D** and Right **48 troops / 9 E / 0 D**.
+- The observation was classified as **OBSERVED**, not treated as universal balance proof.
+- Historical Phase-2 evidence had already identified zero live E despite repeated promotions as too sparse, supporting a rank-presence audit rather than assuming extreme rarity was desirable.
+
+### Rejected Candidate — Run 31378197525
+- First v3.2.1 ecology candidate passed the new ecology measurement itself: mean E **15.31%**, mean D **2.80%**, mean combined elite **18.11%**, maximum elite **30%**, D present in **68.75%** of mature samples.
+- One UI regression still expected the old `v3.2` badge; this was stale test maintenance, not a gameplay regression.
+- More importantly, **all nine protected 900-second natural-siege seeds produced zero fortress hits**.
+- Result: **REJECTED / NOT PROVEN**. The natural-siege acceptance condition was not weakened.
+- Evidence artifact ID `9058933585`, SHA256 `f77884c2ad34ee7f3be6a7497c4936edb58277bf621162fa7b39aae6a97a648b`.
+
+### Test Maintenance / Implementation Hygiene
+- Updated the battle-first UI regression from exact badge `v3.2` to `v3.2.1` after the patch version advanced.
+- An early pre-verification `src/11.js` draft contained an invalid metadata assignment; it was corrected immediately before any candidate was accepted. No completion claim was based on that intermediate commit.
+- Added direct procurement, siege-discipline, and time-sampled rank-ecology regressions rather than judging class frequency from a single screenshot.
+
+### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
+- Exact verified gameplay HEAD: `906df2d8d21950396d442deb08046609fbea19e2`.
+- Protected Vercel preview: `trendy-game-qpdpbwah9-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run **`31378905265` passed 30/30 Playwright tests** in about **5.1 minutes**.
+- Evidence artifact ID: **`9059201788`**.
+- Evidence artifact SHA256: `0008d9f5eed07d4c82683530a409b94917ab64a6e1ee15a2513816c6d7d01299`.
+- The full previous v3.2/frontend/v3.1.1 regression suite remained green.
+
+### Rank Ecology Measurement — 600 Seconds
+- Seed `34202` produced **32 mature-army time samples** after the opening 120 seconds.
+- Mean E share: **17.53%**.
+- Mean D share: **2.96%**.
+- Mean combined E+D share: **20.49%**.
+- Maximum sampled combined elite share: **30%**.
+- D was present in **75%** of mature-army samples.
+- Direct purchases: Left **102 F / 32 E / 5 D**, Right **134 F / 36 E / 5 D**.
+- The tested hierarchy therefore remained F-majority while making E a meaningful veteran layer and D rare but recurring.
+
+### Economy Audit — 4 × 600 Seconds
+- Seeds 32101–32104 all remained finite and valid.
+- Peak living army: **57**.
+- Peak companies: **11**.
+- Highest sampled treasury: about **$603.76**.
+- Maximum instantaneous D share observed by this max-only audit: **12%**.
+- No negative treasury, invalid rank, fortress bound, army-cap, company-cap, or finite-value failure occurred.
+
+### Natural-Siege Audit — 9 × 900 Seconds
+- Seeds 32201–32209 all remained technically valid.
+- Peak living army: **71**; peak companies: **11**.
+- Seed **32201**: Right produced **4 fortress hits**, minimum Right BREACH distance about **214.104**, Left E fortress **6500 → about 6467.94 HP**.
+- Seed **32206**: Right produced **6 fortress hits**, minimum Right BREACH distance about **191.539**, Left F fortress **4500 → about 4449.17 HP**.
+- Total fortress hits: **10**; the other seven seeds produced zero hits.
+- Natural fortress conversion therefore remains possible and the old v3.1 117-hit sustained-siege outlier did not return in this sample.
+
+### Roadmap
+- F Class — STABLE.
+- E Class — STABLE.
+- D Class foundation — STABLE; v3.2.1 rank ecology is an **AUTOMATED VERIFIED CANDIDATE**.
+- **C Class — NEXT CLASS** after v3.2.1 acceptance.
+- **Form III Soresu — LATER**, isolated from the C-Class implementation.
+- Future ranks must preserve the dual-path buy/earn policy while avoiding exponentially vanishing live presence.
+
 ## Phase 3 v3.2 — Form II Makashi + Tactical Combat Continuity
 
 ### Minor Update — Form II Makashi
