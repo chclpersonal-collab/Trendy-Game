@@ -25,6 +25,17 @@ targetEShare=v321TargetEShare;
 targetDShare=v321TargetDShare;
 procurementRank=v321ProcurementRank;
 
+// More E/D troops exposed an old order conflict: autonomous bayonet initiation ran before SIEGE/BREACH movement.
+// Existing charges may finish, but a fresh autonomous charge may not override an explicit siege order.
+function v321EliteSiegeDiscipline(a){const c=a&&!a.isCommander?companyFor(a.team,a.company):null;return !!(a&&a.alive&&rankAtLeast(a,'E')&&c&&(c.command==='SIEGE'||c.command==='BREACH')&&a.chargeTimer<=0)}
+const v32UpdateMusketeerForV321=updateMusketeer;
+updateMusketeer=function(a,dt){
+ const disciplined=v321EliteSiegeDiscipline(a),savedCooldown=a?.chargeCooldown;
+ if(disciplined)a.chargeCooldown=Math.max(a.chargeCooldown||0,999);
+ v32UpdateMusketeerForV321(a,dt);
+ if(disciplined&&a&&a.alive&&a.chargeTimer<=0&&a.chargeCooldown>900)a.chargeCooldown=savedCooldown;
+};
+
 const v32StateForV321=window.__battleSim.state;
 window.__battleSim.state=()=>{
  const state=v32StateForV321();
@@ -33,8 +44,9 @@ window.__battleSim.state=()=>{
  state.classProgression.rankEcology={model:'F majority / E regular / D rare-visible',separateETarget:true,eTargets:{...V321_E_TARGETS},dTargets:{...V321_D_TARGETS},dMinimumArmy:V321_D_MIN_ARMY,siegeDMinimumArmy:V321_SIEGE_D_MIN_ARMY,eSevereDeficitRatio:V321_E_SEVERE_DEFICIT,eMaxUpkeepPressure:V321_E_MAX_PRESSURE,dMaxUpkeepPressure:V321_D_MAX_PRESSURE,promotionThresholdsUnchanged:true};
  state.classProgression.dClass.targetShareRange=[.03,.06];
  state.classProgression.dClass.aiPurchaseMode='rare-visible mature-army procurement across stances; SIEGE retains early top-off and the highest target';
+ state.classProgression.eliteSiegeDiscipline={freshAutonomousChargeDuringSiege:false,existingChargeMayFinish:true,orders:['SIEGE','BREACH'],ordinaryAutonomousBayonetPreserved:true};
  return state
 };
-Object.assign(window.__battleSim.test,{procurementRank,targetEShare:v321TargetEShare,targetDShare:v321TargetDShare});
+Object.assign(window.__battleSim.test,{procurementRank,targetEShare:v321TargetEShare,targetDShare:v321TargetDShare,updateMusketeer,v321EliteSiegeDiscipline});
 document.title='Musketeer Battle Simulator — Phase 3 v3.2.1';
 const v321Badge=document.querySelector('.version');if(v321Badge)v321Badge.textContent='v3.2.1';
