@@ -1,5 +1,85 @@
 # Changelog
 
+## Phase 3 v3.1.1 — Command Continuity / Coordinated Withdrawal
+
+### Bug Fix — Commander Retreat No Longer Equals Command Loss
+- Separated **morale/command authority** from tight commander/company proximity.
+- An original living commander remains the company's active authority while alive, even when temporarily outside the 180-unit tight-cohesion radius.
+- Soldiers therefore no longer become panicked/uncommanded merely because a living commander is regrouping or withdrawing.
+- This is not global tactical command: the established **350-unit individual soldier tactical radius** remains intact.
+- Outside local tactical range, soldiers retain morale authority but use coherent regroup/self-defense behavior instead of receiving detailed remote orders.
+- Added separate `commandProximityIntegrity` telemetry so 180-unit spacing can still be audited without conflating it with commander death.
+
+### Bug Fix / Command Rework — Commander Death Is the Real Disruption Event
+- Commander death removes the company's active command source and can produce genuine uncommanded/panic behavior.
+- Replacement commanders remain physical units.
+- A replacement does not restore authority merely because it spawned; it must physically reach the company and set `joinedCommand=true`.
+- BREACH viability now requires both at least 6 living company musketeers and an active command source, preventing an unjoined replacement from restoring siege authority early.
+
+### Bug Fix — Coordinated Withdrawal
+- `RALLY` and rearward `DEFEND` now move the commander and soldiers as a company instead of allowing the commander to retreat alone.
+- During withdrawal, commander guard/combat distractions are suppressed and the commander stays referenced to the company center.
+- Soldiers under RALLY/REGROUP do not start fresh autonomous E/D bayonet charges while withdrawing.
+- Living-command authority remains intact throughout the coordinated withdrawal.
+
+### Visual / Movement Bug Fix — No Retreat Moonwalking
+- Backward-moving soldiers and commanders now face their actual movement direction.
+- Applied to RALLY, rearward DEFEND, panic retreat, disarm retreat, close-range fallback, and commander withdrawal.
+- The renderer uses actor `facing` for musket, bayonet, saber, muzzle flash, and melee orientation, so the change is visible on-screen rather than telemetry-only.
+
+### Bug Fix — Adaptive Rebuild Thresholds
+- v3.1's 2–14 soldier company system still used the old fixed `4 men = rebuild / 8 men = recovered` thresholds.
+- This could trap a deliberately chosen 2–4 soldier company in RALLY even when fully staffed.
+- Rebuild thresholds now scale with the commander's chosen target size.
+- Verified examples: target 2 → low 1 / ready 2; target 14 → low 4 / ready 8.
+- The old large-company behavior is therefore preserved while small companies can correctly finish rebuilding.
+
+### Audit / UI — Siege-Blocked Emergency Recovery
+- The four-seed economy audit still contains a high-cash wiped-army observation: seed 32103 reached about **$2,304.97** and ended with 0 Left musketeers.
+- Recovery logic was audited rather than immediately rebalancing income.
+- When an army has fewer than 7 musketeers and paid recruitment is blocked by a viable enemy BREACH, the General now reports **`MUSTER BLOCKED`** instead of misleadingly reporting `RECOVER F`.
+- Once the enemy BREACH is relieved, emergency F recruitment resumes normally.
+- A dedicated deployed regression reproduces a 0-soldier / $2,305 defender under a viable six-man enemy BREACH, verifies `MUSTER BLOCKED`, relieves the siege, and verifies immediate `RECOVER F` recruitment of 3 soldiers.
+- The established fieldwork logistics blockade was not weakened.
+
+### Test Fix — MUSTER BLOCKED Scenario Setup
+- Run `31358114685` passed **19/20** tests.
+- The sole failure was the newly added MUSTER BLOCKED test omitting the explicit six-man company target used by the established fieldwork/BREACH regression.
+- The existing fieldwork block/reopen test passed in that same run, proving the blockade itself remained functional.
+- The explanatory test was corrected to set `targetSize=6`; no gameplay workaround was introduced.
+
+### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
+- Exact verified deployed HEAD: `d79cbcf36fadd375125b8c5b0ad30f3117fe3dc6`.
+- Protected Vercel preview: `trendy-game-k8cush2ly-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run **`31358519582` passed 20/20 Playwright tests** in about **4.2 minutes**.
+- Evidence artifact ID: **`9051555549`**.
+- New direct regressions verify living-commander separation vs commander death, coordinated RALLY withdrawal, visible retreat facing, physical replacement joining, adaptive rebuild thresholds, and MUSTER BLOCKED → RECOVER F after relief.
+- The prior v3.1 zero-start, 150-cap, adaptive-company, D progression, economy, fieldwork, BREACH, and UI regressions also remain green.
+
+### Economy Audit — 4 × 600 Seconds
+- Seeds 32101–32104 all remained finite and valid.
+- Peak living army was **66** musketeers; peak company count remained **11**.
+- Maximum sampled D share was about **6.45%**.
+- Highest sampled treasury remained about **$2,304.97** in seed 32103, which ended at 0 / 32 living musketeers and Left E fortress HP about **6257.57 / 6500**.
+- The high treasury remains a recorded operational/balance observation; the dedicated blockade test proves one legitimate rich-but-unable-to-recruit mechanism and immediate recovery after relief.
+
+### Siege Stabilization Audit — Same 9 × 900-Second Seeds
+- Replayed the same seeds 32201–32209 used in the v3.1 warning sample.
+- All nine preserved technical invariants, the 150-musketeer cap, and 11-company cap.
+- Only **seed 32207** produced fortress damage: Left made **2 hits**, reached about **214.155** minimum BREACH distance, and reduced the Right E fortress from 6500 to about **6486.27 HP**.
+- The other eight seeds produced zero fortress hits.
+- v3.1 had produced **123 combined hits** in this same nine-seed suite, including the 117-hit seed 32206; v3.1.1 produced **2 total hits**.
+- The 117-hit sustained-BREACH warning therefore did **not reproduce**, while natural fortress conversion remains possible.
+
+### Roadmap
+- F Class — STABLE.
+- E Class — STABLE.
+- D Class — **NOW: v3.1.1 automated verified candidate**.
+- Form I Shii-Cho — STABLE.
+- **Form II Makashi** returns as the leading next Phase-3 commander-form candidate now that the previous 117-hit siege outlier no longer reproduces.
+- C Class — NEXT CLASS, still locked until the next isolated commander-form slice is verified.
+- Continue tracking siege-blocked treasury accumulation without weakening the fieldwork logistics system.
+
 ## Phase 3 v3.1 — Adaptive Company Cohesion
 
 ### Major / Command Rework — Commander-Chosen 2–14 Soldier Companies
@@ -24,151 +104,72 @@
 - No raw musket damage, generic accuracy, global reload, or rank-stat bonus was added to small companies.
 
 ### Audit / Validation Hardening
-- Runtime state now exposes company target size, doctrine, cohesion factor, cohesion spacing threshold, formation speed, decision scale, volley synchronization time, and target-size expansion count.
-- `GameTest.validate()` now rejects company target sizes outside 2–14 and armies exceeding 11 companies, in addition to the existing 14-per-company and 150-per-army checks.
+- Runtime state exposes company target size, doctrine, cohesion factor, cohesion spacing threshold, formation speed, decision scale, volley synchronization time, and target-size expansion count.
+- `GameTest.validate()` rejects company target sizes outside 2–14 and armies exceeding 11 companies, in addition to the 14-per-company and 150-per-army checks.
 - Test API exposes the company sizing/cohesion functions for direct tradeoff verification.
 - Package version advanced to **3.1.0**.
 
 ### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
 - Verified gameplay HEAD: `b207d8ff686a14e736a5a8f868984272187b6348`.
 - Protected Vercel preview: `trendy-game-m98ojans8-chclpersonal-9731s-projects.vercel.app`.
-- GitHub Actions run **`31355086417` passed 14/14 Playwright tests** in about **5.1 minutes** of browser-test execution.
+- GitHub Actions run **`31355086417` passed 14/14 Playwright tests** in about **5.1 minutes**.
 - Evidence artifact ID: `9050434042`.
-- Exact tests covered the 0-soldier reset, direct small-vs-large cohesion tradeoffs, 151st-purchase rejection, D progression and Assault Drill, Phase-2 F/E economy compatibility, autonomous 300-second play, four 600-second economy samples, nine 900-second natural-siege samples, physical commander return, fieldwork recruitment control, controlled BREACH damage, and UI controls.
 
 ### Adaptive-Company Economy Audit — 4 × 600 Seconds
-- Seeds 32101–32104 all preserved finite state, nonnegative treasury, valid fortress HP, company/army limits, unlocked ranks, and the 15-phase roadmap.
-- Peak living army size across the four samples was **59 musketeers**.
-- Peak company count reached the full **11-company** structural limit without exceeding it.
+- Seeds 32101–32104 preserved technical invariants.
+- Peak living army size was **59 musketeers** and peak company count reached **11**.
 - Maximum sampled D share was about **5.56%**.
-- Company targets naturally varied across lean, balanced, and mass commands, including values from 3 through 14 in this four-seed set.
-- Highest sampled treasury was about **$1,474.37** in seed 32103. This remains below the $3,000 automated ceiling and is technically bounded, but is materially higher than earlier zero-start samples and remains an explicit balance observation.
+- Highest sampled treasury was about **$1,474.37** in seed 32103.
 
 ### Adaptive-Company Natural Siege Audit — 9 × 900 Seconds
-- Seeds 32201–32209 all preserved technical invariants, remained below 150 musketeers per army, and stayed at or below 11 companies.
-- Natural commander choices included **2-soldier target companies**, proving small-company doctrine occurs autonomously rather than only in direct unit tests.
-- **Seed 32205:** Right produced **6 fortress hits**, reached about **214.324** minimum BREACH distance, and reduced the Left E fortress from 6500 HP to about **6454.65**. Peak armies were 60 / 59; peak company counts 11 / 10.
-- **Seed 32206:** Left produced **117 fortress hits**, reached about **214.194** minimum BREACH distance, and reduced the Right F fortress from 4500 HP to about **3575.58**. Peak armies were 61 / 58; peak company counts 11 / 10.
-- The other seven sampled seeds produced zero fortress hits.
-- Natural fortress conversion therefore remains possible under adaptive company sizing.
-
-### Balance Audit — Sustained BREACH Warning
-- Seed 32206's **117-hit** sustained BREACH is not a technical invariant failure and did not destroy the fortress during the sample, but it is much heavier siege pressure than prior Phase-3 samples.
-- The result is recorded as a balance warning rather than hidden or normalized away.
-- v3.2 should audit sustained siege pressure before stacking another commander combat multiplier such as Makashi.
-
-### Roadmap
-- F Class — STABLE.
-- E Class — STABLE.
-- D Class — **NOW: v3.1 automated verified candidate**.
-- C Class — NEXT CLASS, still locked until Phase-3 company/economy pressure stabilizes.
-- Form I Shii-Cho — STABLE.
-- Form II Makashi — still the next commander-form candidate, but deferred from this update; v3.2 should first audit the v3.1 siege-pressure and treasury observations.
+- Seeds 32201–32209 preserved technical invariants.
+- Seed 32205 produced 6 Right fortress hits.
+- Seed 32206 produced **117 Left fortress hits** and became the sustained-BREACH balance warning that motivated the v3.1.1 stabilization work.
+- The other seven seeds produced zero fortress hits.
 
 ## Phase 3 v3.0 — D-Class Foundation / Assault Drill
 
 ### Major Rework — Zero-Start Armies / 150-Soldier Ceiling
-- Every new war now begins with **0 musketeers per army** instead of 14 free F musketeers.
+- Every new war begins with **0 musketeers per army** instead of 14 free F musketeers.
 - Each General retains its starting treasury and must build the army through actual purchases.
-- Raised the hard musketeer ceiling from **56 to 150 per army**, allowing up to **150 vs 150** musketeers.
+- The hard musketeer ceiling is **150 per army**, allowing up to **150 vs 150** musketeers.
 - Commanders are separate from the 150-musketeer count.
-- The existing **14 musketeers per commander/company** cap remains unchanged. A full 150-soldier army therefore uses 11 companies: ten full 14-soldier companies and one 10-soldier company.
-- 150 is a hard ceiling, not an AI target; General force sizing still depends on enemy strength, strategy, treasury, reserve, and upkeep.
+- 150 is a hard ceiling, not an AI target.
 
 ### Bug Fix — True Army-Wide Cap Enforcement
-- Fixed `companyWithRoom()` checking for spare company capacity before checking the army-wide cap.
-- Without the fix, a 151st musketeer could have entered a partially filled last company even when `MAX_MUSKETEERS` was 150.
-- The army-wide count is now checked first.
-- `GameTest.validate()` now explicitly reports and rejects `overArmyCapacity` and exposes `maxPerArmy: 150`.
-- Added a deployed regression that buys 151 musketeers with effectively unlimited treasury and proves exactly 150 succeed, the 151st fails, all companies remain ≤14, and the final army has 11 commanders/companies.
+- Fixed `companyWithRoom()` so the army-wide cap is checked before spare company capacity.
+- The 151st musketeer is rejected even if a company still has a spare slot.
 
 ### Automated Verification — Zero Start / 150 Cap
 - Verified deployed HEAD: `60ade9918a183e8887f51fd394149eb0a254901f`.
-- Protected Vercel preview: `trendy-game-hi5vunley-chclpersonal-9731s-projects.vercel.app`.
-- GitHub Actions run **`31353827658` passed 13/13 Playwright tests** in about **4.0 minutes**.
-- Fresh reset state is explicitly verified as **0 / 0 musketeers** with **1 / 1 initial commanders** before autonomous simulation advances.
-- 300-second autonomous zero-start self-play proves both Generals can build functioning armies from nothing while state remains finite and bounded.
+- GitHub Actions run `31353827658` passed **13/13** Playwright tests.
+- Fresh reset state is 0 / 0 musketeers with one initial commander/company structure per side.
 
-### Zero-Start Economy Audit — 4 × 600 Seconds
-- Seeds 31101–31104 all preserved finite state, nonnegative treasury, valid fortress HP, company cap, army cap, unlocked ranks, and the 15-phase roadmap.
-- Highest sampled treasury was about **$554.60**.
-- Largest sampled living army in this four-seed set was **64** musketeers.
-- Maximum sampled D share was about **2.86%**.
-- Direct D purchases remained sparse and earned E→D promotion still occurred.
-- The General therefore does not automatically fill the new 150 ceiling; normal economic force sizing remains active.
-
-### Zero-Start Natural Siege Audit — 9 × 900 Seconds
-- Seeds 31201–31209 all preserved technical invariants and stayed below 150 musketeers per army.
-- **Seed 31202:** Left produced **18 natural fortress hits**, reached about **213.951** minimum BREACH distance, and reduced the Right E fortress from 6500 HP to about **6359.19**; peak armies were **77 / 78**.
-- **Seed 31203:** Left produced **53 natural fortress hits**, reached about **200.040** minimum BREACH distance, and reduced the Right E fortress from 6500 HP to about **6076.89**; peak armies were **54 / 54**.
-- The other seven seeds produced zero fortress hits.
-- Removing the free starting army therefore does not eliminate natural siege conversion.
-
-### Test Fix — Initial-State Timing
-- First zero-start run `31353568973` passed **12/13** tests.
-- The only failure expected 0 / 0 immediately after page load, but autonomous AI had already advanced for a fraction of a second and bought 3 F musketeers per side before the test clicked Pause.
-- This was a test-timing error, not a game-rule failure: the hard-cap, self-play, economy, natural-siege, commander, fieldwork, BREACH, and controls tests all passed in that same run.
-- Corrected the test to pause and explicitly reset before inspecting the default state. No gameplay workaround was added.
-
-### Major Update — D Class unlocked
-- Phase 2 / E Class is stable.
-- D Class is the Phase 3 current rank; C Class remains locked as Phase 4.
-- D may be bought directly for **$80** or earned by an E soldier at **10 total XP**.
-- The existing 50% defeated-rank bounty rule makes a D kill worth **$40**.
-- Direct D starts at the 10-XP D floor; every earned XP restores 20 HP up to full health.
-
-### Rework — D identity changed from passive drill to Assault Drill
-- The initial universal passive D fire advantage was rejected after repeated deployed-browser testing showed it suppressed natural fortress conversion broadly.
-- Final D inherits E's automatic bayonet charge without extra melee damage.
-- D's special musket drill activates only under **SIEGE, BREACH, or commander CHARGE** company orders.
-- During the drill, D gains **+3.5 percentage points musket aim**, a **2-second reload drill bonus**, and a **25-second reload floor** after veteran effects.
-- Outside assault orders, D uses an **E-equivalent veteran combat baseline**.
-
-### AI / Procurement Rework
-- Routine D target outside SIEGE is **0%**; SIEGE target is up to about **8%**.
-- D procurement is allowed only as a funded siege top-off: army within two soldiers of desired strength, upkeep pressure below 78%, and treasury sufficient for the normal reserve + $80 D price + a $120 surplus buffer.
-- Recovery/rebuild procurement remains F/E-first.
+### Major Update — D Class
+- D may be bought directly for **$80** or earned from E at **10 total XP**.
+- D kill bounty is **$40** under the existing 50% defeated-rank-price rule.
+- D inherits E's bayonet charge.
+- D Assault Drill activates only under SIEGE, BREACH, or commander CHARGE and gives +3.5 percentage points aim, a 2-second reload bonus, and 25-second D reload floor.
+- Outside assault orders D uses an E-equivalent veteran combat baseline.
 
 ### Bug Fix — Preserve Phase-2 F/E Economy
-- Rejected the first v3.0 formula that normalized price-quality income across the raw F→D price span because it reduced E's established contribution and broke siege behavior.
-- F retains price-quality contribution 0 and E retains contribution 1; D contributes a bounded 1.5.
-- D's full **$80** still counts toward army-value upkeep.
-- Regression coverage proves a 14-F + 1-E army still receives rank bonus `1/15` and price-quality bonus `1/15`.
-
-### Minor / UI / Code
-- Added D living-count and E→D promotion telemetry.
-- D soldiers have a distinct second bayonet mark and bold D veteran label.
-- Static `game.html` identifies Phase 3 v3.0 directly.
-- Centralized rank inheritance through `rankScoreOf()` / `rankAtLeast()`.
-- Added `dAssaultDrillActive()` and `veteranCombatXP()` for D's assault-only behavior.
-- Runtime validation rejects ranks outside currently unlocked F/E/D.
+- Rejected normalization across the raw F→D price span because it reduced E's established contribution.
+- F price-quality contribution remains 0, E remains 1, D is bounded at 1.5; full D price still counts toward upkeep.
 
 ### Earlier v3.0 Candidate Evidence
-- Run `31351540126`: **8/10 passed**; exposed a test-accounting mistake and a real siege/economy regression.
-- Run `31351758849`: **10/11 passed**; F/E economy was restored, but universal passive D still suppressed fortress conversion.
-- Broader nine-seed testing confirmed the passive D design was structurally harmful, so it was removed instead of weakening siege acceptance.
-- The Assault Drill redesign later passed the full deployed gate and is retained.
-
-### Acceptance Convention / Roadmap
-- No separate human-playtest gate is required.
-- Automated technical failures still block advancement.
-- After a technically verified update is delivered, **no user comments means accepted/good**.
-- C Class remains locked until D is accepted/stabilized.
-- **Form II — Makashi** remained the leading post-v3.0 candidate before v3.1 prioritized adaptive company cohesion.
+- Universal passive D designs were rejected after deployed testing showed natural siege suppression.
+- The accepted Assault Drill design kept D's advantage assault-dependent instead of universally buffing defensive lines.
 
 ## Phase 2 v2.21 — Final Pricing Calibration / Command-Recovery Audit
 
-### Patch — Experimental Pricing 15/15 / FINAL SCHEDULED CALIBRATION
-- Advanced the scheduled experimental-pricing counter from 14/15 to **15/15**.
-- Held F at $10, E at $32, base passive income at $10/s, F bounty at $5, E bounty at $16, and upkeep at 1.60% of living army value/s.
-- No fortress, musket, E-charge, command-radius, BREACH-pressure, or company-cap rebalance was stacked onto the final pricing sample.
-- Patch 15 completes the planned calibration sequence but does not make the values permanently immutable; later evidence may still justify a change.
+### Patch — Experimental Pricing 15/15
+- Completed the scheduled pricing calibration at F $10, E $32, $10/s passive income, 50% bounty, and 1.60% living-army-value upkeep.
 
 ### Audit — Final Economy Calibration
 - Four deterministic 600-second deployed-browser economy samples peaked at about $610.62 while retaining direct E purchases and earned F→E promotion.
-- The exact protected v2.21 run `31350330442` passed **8/8** Playwright tests in **55.7 seconds**.
-- Natural seed 21902 produced 4 fortress hits at about 214.022 minimum fortress distance; seeds 21901 and 21903 produced zero fortress hits.
+- Exact run `31350330442` passed **8/8** Playwright tests.
+- Natural seed 21902 produced 4 fortress hits at about 214.022 minimum fortress distance.
 
 ### Rework Audit — Separated-Commander Soldier Fallback REJECTED
-- A proposed soldier fallback toward a separated living commander worked mechanically but erased natural fortress hits in the unchanged siege gate and caused heavy rejoin churn.
-- The fallback was removed; the accepted baseline keeps the commander physically returning to the company before normal soldier rejoin resumes.
+- A proposed soldier fallback toward a separated living commander worked mechanically but erased natural fortress hits and caused heavy rejoin churn.
+- The fallback was removed rather than weakening the siege gate.
