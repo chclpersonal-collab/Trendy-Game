@@ -1,44 +1,91 @@
 # Musketeer Battle Simulator
 
-Autonomous two-army musketeer battle simulation. Development is incremental and evidence-gated: implementation is not considered complete until the exact deployed candidate passes browser regression tests and its balance implications are reviewed.
+Autonomous two-army musketeer battle simulation. Development is incremental and evidence-gated: implementation is not considered complete merely because code was written. Material claims must survive the exact deployed-browser regression gate, and Phase stability still requires human playtesting when balance and feel matter.
 
 ## Current state
 
-- **Current candidate:** Phase 2 **v2.20**
-- **Class:** E Class stabilization
-- **Experimental Pricing:** **14 / 15**
-- **Status:** **VERIFIED CANDIDATE** — exact protected Vercel preview passed 6/6 Playwright tests on commit `eef38d4322c1f3ffe49ab1bb404c04a079156d98`
-- **Patch 14 policy:** controlled hold at F $10, E $32, $10/s base income, 1.60% living-army-value upkeep/s, and 50% defeated-rank kill bounty
-- **Phase 3 / D Class:** locked until Phase 2 is stable
-- **Commander Form II / Makashi:** locked until the current combat layer is stable
-- **Next gate:** v2.21 / Pricing Patch 15/15
+- **Current candidate:** Phase 2 **v2.21**
+- **Class:** E Class final stabilization
+- **Experimental Pricing:** **15 / 15 — scheduled calibration series complete**
+- **Status:** **AUTOMATED VERIFIED CANDIDATE**
+- **Verified gameplay commit:** `ea1803f262263edf616da3348f152242bfa3c08b`
+- **Protected Playwright run:** `31350330442` — **8/8 passed**
+- **Economy hold:** F $10, E $32, $10/s base income, 1.60% living-army-value upkeep/s, 50% defeated-rank kill bounty
+- **Human playtest:** **REQUIRED / NOT YET COMPLETED**
+- **Phase 3 / D Class:** **BLOCKED until Phase 2 is declared stable**
+- **Commander Form II / Makashi:** locked
 
-## v2.20 — Siege Baseline Preservation / Development Consolidation
+Patch 15 completes the planned pricing-calibration sequence; it does **not** make these values immutable. Future evidence may still justify a balance change.
 
-v2.20 intentionally avoids stacking new combat or economy balance changes on top of the newly proven v2.19 natural breakthrough. Its job is to preserve that baseline, audit a proposed reinforcement change, harden deployed regression coverage, and simplify the repository workflow.
+## v2.21 — Final Pricing Calibration / Command-Recovery Audit
 
-### Fieldwork audit result
+### Pricing Patch 15/15
 
-A proposed v2.20 change moved normal paid musketeer spawns from the fortress to a forward fieldwork staging point. It was rejected after deployed-browser testing:
+v2.21 deliberately holds the proven v2.20 economy and combat constants rather than forcing a last-minute price change for the sake of changing a number:
 
-- 55 units behind the fieldwork: the unchanged three-seed × 600-second natural-siege gate fell to **0 fortress hits**.
-- 150 units behind the fieldwork: the same gate again produced **0 fortress hits**.
-- In the 150-unit run, emergency-reserve logic triggered **0 times**, so it was not the cause of the regression.
-- Seed 21902, which had reached roughly 214 units from a fortress in the verified v2.19 sample, only reached roughly 678 units in the 150-unit experiment.
+- F Class: **$10**
+- E Class: **$32**
+- base passive income: **$10/s**
+- upkeep: **1.60% of living army value/s**
+- kill bounty: **50% of defeated rank price**
+- base musket reload: **30s**
+- company cap: **14 musketeers per commander**
 
-Therefore fieldworks remain **logistics-control nodes**, not forward troop spawn points. A viable enemy BREACH within one musket range still blocks paid recruitment; once relieved, paid musketeers continue to deploy physically from the fortress. This preserves the proven siege balance instead of compensating for a failed reinforcement concept with arbitrary attacker buffs.
+Four deterministic 600-second economy samples remained finite and active. The highest sampled treasury was about **$610.62**, far below the earlier pre-upkeep multi-thousand runaway behavior. Across the four samples there were **287 direct E-Class purchases** and **21 earned F→E promotions**, so the economy did not achieve stability merely by suppressing progression.
 
-### Final deployed verification
+### Command-recovery audit
 
-GitHub Actions run `31347815304` tested the exact protected Vercel preview for commit `eef38d4322c1f3ffe49ab1bb404c04a079156d98` and passed **6/6** tests in 30.8 seconds of Playwright execution.
+v2.20 natural runs still showed large temporary uncommanded populations, so v2.21 tested a seemingly reasonable recovery change: let soldiers treat a living but company-separated commander as a physical fallback regroup target.
 
-Natural siege acceptance retained the v2.19 breakthrough behavior:
+That experiment **failed** the unchanged natural-siege acceptance gate:
 
-- Seed 21901: 0 fortress hits.
+- all three 600-second siege seeds produced **0 fortress hits**;
+- seed 21902 lost the v2.20 breakthrough and only reached roughly **656–765** units from the fortresses instead of the established ~214-unit conversion;
+- the new fallback caused heavy rejoin churn, with large portions of companies chasing commanders that were already physically returning toward their company.
+
+The experiment was therefore removed. The accepted rule remains simpler:
+
+- a separated living commander physically returns toward the company;
+- soldiers keep the existing local rejoin behavior once company command is functioning again;
+- precise tactical orders are not restored early;
+- command radius remains 180 at company-integrity level and 350 for individual soldier command.
+
+A deployed regression now proves the separated commander physically closes distance at the existing **28 units/s** joining speed while remaining out of command after the first second, so there is no hidden teleport or premature command restoration.
+
+## Final deployed verification
+
+The exact protected Vercel deployment for commit `ea1803f262263edf616da3348f152242bfa3c08b` passed **8/8** Playwright tests in **55.7 seconds** of browser-test execution.
+
+### Economy calibration — 4 × 600 seconds
+
+Observed maximum treasuries by seed stayed approximately between **$430 and $611**. All four runs preserved finite state, nonnegative treasury, valid fortress HP, the 14-musketeer company cap, and the 15-phase roadmap. Direct E purchases and earned E promotions occurred in every sampled run.
+
+### Natural siege — 3 × 600 seconds
+
+- Seed 21901: **0 fortress hits**.
 - Seed 21902: Right produced **4 fortress hits**, reached about **214.022** minimum fortress distance, and reduced the upgraded Left fortress from 6500 HP to about **6466.63**.
-- Seed 21903: 0 fortress hits.
+- Seed 21903: **0 fortress hits**.
 
-All three natural runs preserved finite state, valid fortress HP, the 14-musketeer company cap, and the 15-phase roadmap. The deployed fieldwork regression also proved paid recruitment is blocked while the logistics node is contested and reopens immediately after relief, while the troop still physically deploys from the fortress.
+This exactly restores the important v2.20 natural-breakthrough pattern after rejecting the disruptive recovery experiment. It proves natural fortress conversion remains possible; it does not prove its frequency is perfectly balanced.
+
+### Other deployed regressions
+
+The v2.21 gate also passed:
+
+- boot/runtime and Patch 15 invariants;
+- deterministic 300-second self-play;
+- physical separated-commander return without early command restoration;
+- fieldwork recruitment block and immediate reopening after relief;
+- controlled BREACH → real fortress damage;
+- Pause / Speed / Front controls;
+- canonical Form I–VII identities and current Form I lock.
+
+## Known limitations / open audit findings
+
+- Natural samples still reached **peak uncommanded populations as high as 56**. This remains an open cohesion problem, not a solved claim.
+- The rejected soldier-to-separated-commander fallback shows that a naive cohesion fix can damage siege behavior. Future cohesion work needs to preserve forward tactical continuity rather than simply minimizing the uncommanded counter.
+- The raw pre-JavaScript `game.html` still contains some legacy v2.19 / Pricing 13 labels; runtime JavaScript immediately presents v2.21 correctly. Removing that stale static metadata is a nonfunctional simplification task, not a gameplay blocker.
+- Human Vercel playtesting has not yet been completed for v2.21, so **Phase 2 is not declared stable**.
 
 ## Branch policy
 
@@ -47,9 +94,9 @@ From v2.20 onward there is one active development branch:
 - `main` — accepted/stable baseline
 - `agent/current` — the single rolling development branch
 
-Do not create version-specific development branches such as `update/v2.20` or `update/v2.21`. Versions are preserved by commits, PR history, changelog entries, and test artifacts rather than permanent branches.
+Do not create version-specific development branches such as `update/v2.21` or `update/v2.22`. Versions are preserved by commits, PR history, changelog entries, and test artifacts.
 
-Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete. Their PRs are closed and CI no longer runs on them. Physical deletion of those refs is cleanup-only and does not change the active workflow.
+Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs remain obsolete cleanup refs. Their PRs are closed and CI does not use them. Physical deletion remains blocked by the currently available GitHub connector, which exposes no branch-ref deletion operation.
 
 ## Hard invariants
 
@@ -58,7 +105,7 @@ Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete. The
 - Maximum 14 musketeers per commander/company.
 - Base musket reload remains 30 seconds.
 - F melee exists only during temporary commander counter-charge orders; E keeps its autonomous bayonet charge.
-- Commander Form I is Shii-Cho only. Forms II–VII keep their canonical identities and remain locked.
+- Commander Form I is Shii-Cho only. Forms II–VII retain their canonical identities and remain locked.
 - Movement and commander replacement remain physical; no teleport regrouping.
 - Command remains local rather than global.
 - Fortress HP, treasury, actors, and telemetry must remain finite and valid.
@@ -66,8 +113,8 @@ Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete. The
 ## Roadmap
 
 1. **F Class — STABLE**
-2. **E Class — NOW: stabilization / Pricing 14–15**
-3. **D Class — NEXT, LOCKED**
+2. **E Class — NOW: v2.21 automated gate passed; human stabilization playtest pending**
+3. **D Class — NEXT CLASS, BLOCKED until Phase 2 stability verdict**
 4. C Class
 5. B Class
 6. A Class
@@ -81,6 +128,20 @@ Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete. The
 14. SSS+ Class Type IV
 15. SSS+ Class Type V — final
 
+### Immediate next work
+
+**NOW**
+- Human Vercel playtest of v2.21: pacing, fieldwork fairness, siege readability, recovery behavior, economy feel, and whether E progression feels meaningfully stronger without becoming dominant.
+- Review the high-uncommanded episodes visually rather than optimizing the telemetry number in isolation.
+
+**NEXT**
+- If human playtesting finds a material Phase 2 problem: make a focused v2.22 stabilization patch on `agent/current` and re-run the full deployed gate.
+- If human playtesting supports stability: record the Phase 2 stability verdict, then begin scoped D-Class design while keeping Form II locked unless its own roadmap gate is reached.
+
+**LATER**
+- Remove stale pre-JavaScript version labels and reduce remaining version-copy indirection.
+- Continue class phases 3–15 only after each prior phase satisfies its own evidence gate.
+
 ## Verification policy
 
-The protected Vercel preview is tested with Playwright for boot/runtime errors, deterministic self-play, natural fortress pressure, fieldwork recruitment blocking/reopening, controlled BREACH damage, controls, company cap, roadmap count, treasury/fortress validity, and the current phase/version constants. A failed experiment stays failed in the evidence; acceptance tests are not weakened to make a candidate pass. Human playtesting remains the final balance gate before Phase 2 can be called stable.
+A failed experiment stays failed in the evidence; acceptance tests are not weakened to make a candidate pass. Automated evidence can prove the tested invariants and deterministic scenarios, but human playtesting remains the final balance/feel gate before Phase 2 can be called stable.
