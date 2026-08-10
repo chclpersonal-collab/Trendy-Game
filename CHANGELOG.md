@@ -1,5 +1,48 @@
 # Changelog
 
+## Frontend Rework — Battle-First Interface
+
+### Rework — Remove Generic Generated-UI Chrome
+- Replaced the old stack of bordered dashboard cards with a flat battlefield + information-rail layout.
+- Removed player-facing development/release material from the game screen: **Phase 3 Rules, Commander Forms, Roadmap, General AIs**, release-note-style header copy, and paragraph-length helper prose.
+- Project/runtime roadmap validation remains intact; the roadmap is hidden from the normal game surface rather than deleted from simulation state.
+- The battlefield is now the dominant surface instead of one card among many.
+
+### Simplification — Clear Battle Hierarchy
+- Added explicit **Left / Right** columns instead of packing paired values into slash-separated strings.
+- Primary visible information is limited to battle state: troops, commanders, treasury, fortress HP, kills, strategy, plan, momentum, positions, command integrity, uncommanded troops, E/D counts, reload state, fortress hits, and wars won.
+- Advanced economy, command, fortress, combat, calibration, and seed telemetry remains available under one closed-by-default **Details** disclosure.
+- Replaced the global monospace interface with the system UI font while keeping tabular numerals for live statistics.
+- No gradients, neon glow, pill-badge styling, or rounded-card stack was introduced.
+
+### Patch — Responsive Layout
+- Desktop uses battlefield + compact information rail.
+- Mobile places the battlefield above the information panel.
+- Horizontal battlefield movement remains contained inside the battlefield scroller.
+- Existing **Pause/Resume, Speed, Front, Restart** behavior and labels are preserved.
+
+### Audit — Web-Guided UI Cleanup
+- The rework was guided by current interface recommendations emphasizing concise wording, clear hierarchy, removing unnecessary elements, and hiding secondary detail until relevant.
+- The audit also explicitly targeted repeated outlined dashboard rectangles and other recognizable generic AI-generated interface defaults.
+- Visual screenshots were captured for desktop and 412×915 mobile layouts and manually inspected after the deployed run.
+
+### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
+- Exact verified deployed HEAD: `910ce709bd3c2505005e32e8bbdd8db7fdc34896`.
+- Protected Vercel preview: `trendy-game-5l9jf5iof-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run **`31365761574` passed 22/22 Playwright tests** in about **4.0 minutes**.
+- Evidence artifact ID: **`9054170465`**.
+- New UI regressions prove the old development chrome/card stack is absent, Left/Right battle columns exist, Details is collapsed by default, and mobile has no page-level horizontal overflow.
+- The previous 20 v3.1.1 gameplay/technical regressions remain green.
+- The 4×600-second economy and 9×900-second siege telemetry reproduced the prior v3.1.1 values exactly, providing evidence that the frontend rework did not alter simulation behavior.
+
+### Roadmap
+- F Class — STABLE.
+- E Class — STABLE.
+- D Class — **NOW: v3.1.1 automated verified candidate**.
+- Battle-first frontend rework — **DONE / verified**.
+- **Form II Makashi — NEXT**, isolated as its own commander-form slice.
+- C Class — NEXT CLASS after the commander-form slice is independently verified.
+
 ## Phase 3 v3.1.1 — Command Continuity / Coordinated Withdrawal
 
 ### Bug Fix — Commander Retreat No Longer Equals Command Loss
@@ -14,10 +57,10 @@
 - Commander death removes the company's active command source and can produce genuine uncommanded/panic behavior.
 - Replacement commanders remain physical units.
 - A replacement does not restore authority merely because it spawned; it must physically reach the company and set `joinedCommand=true`.
-- BREACH viability now requires both at least 6 living company musketeers and an active command source, preventing an unjoined replacement from restoring siege authority early.
+- BREACH viability requires both at least 6 living company musketeers and an active command source, preventing an unjoined replacement from restoring siege authority early.
 
 ### Bug Fix — Coordinated Withdrawal
-- `RALLY` and rearward `DEFEND` now move the commander and soldiers as a company instead of allowing the commander to retreat alone.
+- `RALLY` and rearward `DEFEND` move the commander and soldiers as a company instead of allowing the commander to retreat alone.
 - During withdrawal, commander guard/combat distractions are suppressed and the commander stays referenced to the company center.
 - Soldiers under RALLY/REGROUP do not start fresh autonomous E/D bayonet charges while withdrawing.
 - Living-command authority remains intact throughout the coordinated withdrawal.
@@ -32,12 +75,12 @@
 - This could trap a deliberately chosen 2–4 soldier company in RALLY even when fully staffed.
 - Rebuild thresholds now scale with the commander's chosen target size.
 - Verified examples: target 2 → low 1 / ready 2; target 14 → low 4 / ready 8.
-- The old large-company behavior is therefore preserved while small companies can correctly finish rebuilding.
+- The old large-company behavior is preserved while small companies can correctly finish rebuilding.
 
 ### Audit / UI — Siege-Blocked Emergency Recovery
-- The four-seed economy audit still contains a high-cash wiped-army observation: seed 32103 reached about **$2,304.97** and ended with 0 Left musketeers.
+- The four-seed economy audit contains a high-cash wiped-army observation: seed 32103 reached about **$2,304.97** and ended with 0 Left musketeers.
 - Recovery logic was audited rather than immediately rebalancing income.
-- When an army has fewer than 7 musketeers and paid recruitment is blocked by a viable enemy BREACH, the General now reports **`MUSTER BLOCKED`** instead of misleadingly reporting `RECOVER F`.
+- When an army has fewer than 7 musketeers and paid recruitment is blocked by a viable enemy BREACH, the General reports **`MUSTER BLOCKED`** instead of misleadingly reporting `RECOVER F`.
 - Once the enemy BREACH is relieved, emergency F recruitment resumes normally.
 - A dedicated deployed regression reproduces a 0-soldier / $2,305 defender under a viable six-man enemy BREACH, verifies `MUSTER BLOCKED`, relieves the siege, and verifies immediate `RECOVER F` recruitment of 3 soldiers.
 - The established fieldwork logistics blockade was not weakened.
@@ -69,7 +112,7 @@
 - Only **seed 32207** produced fortress damage: Left made **2 hits**, reached about **214.155** minimum BREACH distance, and reduced the Right E fortress from 6500 to about **6486.27 HP**.
 - The other eight seeds produced zero fortress hits.
 - v3.1 had produced **123 combined hits** in this same nine-seed suite, including the 117-hit seed 32206; v3.1.1 produced **2 total hits**.
-- The 117-hit sustained-BREACH warning therefore did **not reproduce**, while natural fortress conversion remains possible.
+- The 117-hit sustained-BREACH warning did **not reproduce**, while natural fortress conversion remains possible.
 
 ### Roadmap
 - F Class — STABLE.
@@ -83,7 +126,7 @@
 ## Phase 3 v3.1 — Adaptive Company Cohesion
 
 ### Major / Command Rework — Commander-Chosen 2–14 Soldier Companies
-- Commanders now choose a **target company load from 2–14 musketeers** instead of treating 14 as the default working size.
+- Commanders choose a **target company load from 2–14 musketeers** instead of treating 14 as the default working size.
 - Mission posture biases the choice: **BUILD 2–6, DEFEND 4–8, CONTEST 5–10, ATTACK 8–12, SIEGE 10–14**.
 - High upkeep pressure pushes new commanders toward smaller targets.
 - Runtime doctrine labels are **LEAN** (2–5), **BALANCED** (6–10), and **MASS** (11–14).
@@ -92,21 +135,20 @@
 ### AI / Structural Rework — Preserve the 150-Soldier Ceiling
 - Added an **11-company maximum per army**, matching `ceil(150 / 14)`.
 - Recruitment fills each command only to its chosen target before opening another company while commander slots remain.
-- If all 11 company slots are occupied and the General still needs soldiers, existing commanders may expand target load by one at a time up to 14.
-- Expansion favors active BREACH/SIEGE/CHARGE/ADVANCE commands and already-larger companies.
+- If all 11 company slots are occupied and the General still needs soldiers, existing commanders may expand target load one at a time up to 14.
 - This prevents unlimited commander spam from tiny companies while preserving a real path to the 150-musketeer hard ceiling.
 
 ### Cohesion Rework — Smaller Is Tighter, Larger Is Heavier
 - Cohesion scales continuously with current living company load from **1.22 at 2 soldiers** to **0.84 at 14 soldiers**.
-- Smaller companies begin longitudinal cohesion correction at tighter spacing, reform vertically faster, receive shorter commander decision intervals, and synchronize formal volleys faster.
-- Larger companies sacrifice some coordination for more simultaneous musket mass and greater attrition depth.
-- Existing threshold mechanics create additional large-company advantages: formal volleys require at least 4 ready musketeers, counter-charge evaluation requires at least 5 company musketeers, and BREACH viability requires at least 6.
+- Smaller companies gain tighter spacing, faster formation recovery, shorter commander decision intervals, and faster formal-volley synchronization.
+- Larger companies trade some coordination for simultaneous musket mass, attrition depth, and easier access to threshold mechanics.
+- Formal volleys require at least 4 ready musketeers, counter-charge evaluation at least 5 company musketeers, and BREACH viability at least 6.
 - No raw musket damage, generic accuracy, global reload, or rank-stat bonus was added to small companies.
 
 ### Audit / Validation Hardening
 - Runtime state exposes company target size, doctrine, cohesion factor, cohesion spacing threshold, formation speed, decision scale, volley synchronization time, and target-size expansion count.
 - `GameTest.validate()` rejects company target sizes outside 2–14 and armies exceeding 11 companies, in addition to the 14-per-company and 150-per-army checks.
-- Test API exposes the company sizing/cohesion functions for direct tradeoff verification.
+- Test API exposes company sizing/cohesion functions for direct tradeoff verification.
 - Package version advanced to **3.1.0**.
 
 ### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
