@@ -7,6 +7,7 @@ Autonomous two-army musketeer battle simulation. Development is incremental and 
 - **Current candidate:** Phase 2 **v2.20**
 - **Class:** E Class stabilization
 - **Experimental Pricing:** **14 / 15**
+- **Status:** **VERIFIED CANDIDATE** — exact protected Vercel preview passed 6/6 Playwright tests on commit `eef38d4322c1f3ffe49ab1bb404c04a079156d98`
 - **Patch 14 policy:** controlled hold at F $10, E $32, $10/s base income, 1.60% living-army-value upkeep/s, and 50% defeated-rank kill bounty
 - **Phase 3 / D Class:** locked until Phase 2 is stable
 - **Commander Form II / Makashi:** locked until the current combat layer is stable
@@ -26,6 +27,18 @@ A proposed v2.20 change moved normal paid musketeer spawns from the fortress to 
 - Seed 21902, which had reached roughly 214 units from a fortress in the verified v2.19 sample, only reached roughly 678 units in the 150-unit experiment.
 
 Therefore fieldworks remain **logistics-control nodes**, not forward troop spawn points. A viable enemy BREACH within one musket range still blocks paid recruitment; once relieved, paid musketeers continue to deploy physically from the fortress. This preserves the proven siege balance instead of compensating for a failed reinforcement concept with arbitrary attacker buffs.
+
+### Final deployed verification
+
+GitHub Actions run `31347815304` tested the exact protected Vercel preview for commit `eef38d4322c1f3ffe49ab1bb404c04a079156d98` and passed **6/6** tests in 30.8 seconds of Playwright execution.
+
+Natural siege acceptance retained the v2.19 breakthrough behavior:
+
+- Seed 21901: 0 fortress hits.
+- Seed 21902: Right produced **4 fortress hits**, reached about **214.022** minimum fortress distance, and reduced the upgraded Left fortress from 6500 HP to about **6466.63**.
+- Seed 21903: 0 fortress hits.
+
+All three natural runs preserved finite state, valid fortress HP, the 14-musketeer company cap, and the 15-phase roadmap. The deployed fieldwork regression also proved paid recruitment is blocked while the logistics node is contested and reopens immediately after relief, while the troop still physically deploys from the fortress.
 
 ## Branch policy
 
@@ -70,4 +83,4 @@ Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete. The
 
 ## Verification policy
 
-The protected Vercel preview is tested with Playwright for boot/runtime errors, deterministic self-play, natural fortress pressure, fieldwork recruitment blocking/reopening, controlled BREACH damage, controls, company cap, roadmap count, treasury/fortress validity, and the current phase/version constants. A failed experiment stays failed in the evidence; acceptance tests are not weakened to make a candidate pass.
+The protected Vercel preview is tested with Playwright for boot/runtime errors, deterministic self-play, natural fortress pressure, fieldwork recruitment blocking/reopening, controlled BREACH damage, controls, company cap, roadmap count, treasury/fortress validity, and the current phase/version constants. A failed experiment stays failed in the evidence; acceptance tests are not weakened to make a candidate pass. Human playtesting remains the final balance gate before Phase 2 can be called stable.
