@@ -25,9 +25,16 @@ The source roadmap defines D as Phase 3 and preserves the policy that every unlo
 - Inherits E's existing automatic bayonet charge; no extra bayonet damage is added
 - **Drilled fire:** +3.5 percentage points musket aim and a 2-second reload drill bonus
 - D reload floor: **25 seconds**; the global musket base remains 30 seconds
-- General AI target D share: roughly **2–8%**, stance-dependent, with upkeep pressure able to force cheaper procurement
+- General AI target D share: roughly **2–8%**, stance-dependent
+- General AI buys D only as a **surplus top-off** when the army is within two soldiers of its current desired strength, upkeep pressure is low, and at least $120 of extra cash remains beyond the normal reserve plus D's $80 price
 
 D is intended to be a scarce elite line soldier, not an immediate replacement for E. F and E prices and core mechanics remain intact at $10 and $32.
+
+## Phase-2 economy preservation
+
+The first v3.0 candidate incorrectly normalized the old F/E price-quality income term across the new raw F→D price span. That reduced the established value of E-heavy armies and failed the unchanged natural-siege gate. The design was rejected.
+
+The accepted v3.0 candidate preserves the Phase-2 F/E quality formula exactly: F contributes 0 and E contributes 1 to the price-quality average, as before. D contributes a bounded **1.5** rather than its raw $80 price ratio. D's real $80 value still fully affects army-value upkeep. This prevents D from creating a passive-income windfall without silently nerfing E's established economy.
 
 ## Preserved Phase-2 systems
 
@@ -78,6 +85,6 @@ Do not create version-specific development branches. Legacy `update/v2.17`, `upd
 
 ### Near-term Phase 3 roadmap
 
-- **v3.0:** D musketeer foundation, direct/earned progression, drilled fire, low-share AI procurement, regression preservation.
+- **v3.0:** D musketeer foundation, direct/earned progression, drilled fire, surplus-only low-share AI procurement, regression preservation.
 - **v3.1 candidate:** evaluate Form II Makashi as a separate commander-form update only after v3.0 is accepted; do not bundle it into D's first balance sample.
 - Continue cohesion investigation only with designs that preserve siege continuity; high uncommanded telemetry alone is not sufficient reason to change command behavior.

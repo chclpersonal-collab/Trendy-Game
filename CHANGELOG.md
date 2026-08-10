@@ -16,10 +16,18 @@
 
 ### AI / Economy
 - General AI now procures F, E and D.
-- D target share is intentionally small: roughly **2–8%** by stance, with highest demand during siege/attack.
-- Upkeep pressure can force the General back to F/E procurement before D fills the army.
-- Army-quality income normalization now uses the F→D price span so adding an $80 rank does not accidentally create an outsized passive-income multiplier.
-- Phase-2 F $10 / E $32 / $10/s base income / 1.60% army-value upkeep baseline is preserved for the first D sample.
+- D target share is intentionally small: roughly **2–8%** by stance.
+- D procurement is restricted to a **surplus top-off**: the living army must already be within two soldiers of desired strength, upkeep pressure must be below 78%, and the treasury must cover the normal reserve, D's $80 price, and an extra $120 buffer.
+- Rebuild/recovery procurement therefore remains F/E-first instead of spending scarce recovery cash on D.
+- Phase-2 F $10 / E $32 / $10/s base income / 1.60% army-value upkeep baseline is preserved.
+
+### Bug Fix / Rejected Economy Normalization
+- First v3.0 candidate normalized price-quality income across the raw F→D price span. Although mathematically tidy, it silently reduced the established E quality bonus and the unchanged three-seed natural-siege gate fell to zero fortress hits.
+- Rejected that formula. F and E now retain the exact Phase-2 price-quality contributions of 0 and 1; D adds a bounded 1.5 contribution while its full $80 price still counts toward upkeep.
+- Added a regression proving a 14-F + 1-E army still receives rank bonus 1/15 and price bonus 1/15, exactly preserving the prior F/E relationship.
+
+### Test Fix
+- Corrected the direct-D purchase assertion to measure treasury immediately after purchase. The first test incorrectly measured after a subsequent F kill bounty and therefore reported $75 even though the actual D purchase had correctly deducted $80.
 
 ### Minor / UI
 - Added exact D living count and E→D promotion telemetry.
@@ -30,13 +38,11 @@
 ### Code / Complexity
 - Removed the v2.x release-state wrapper and runtime version-copy patching from `src/10.js`; source state, static HTML and test API now agree directly on v3.0.
 - Rank comparison is centralized through `rankScoreOf()` / `rankAtLeast()` so D correctly inherits E-capable behavior without repeating `E || D` conditions.
-- Test validation now rejects any living non-commander rank outside the currently unlocked F/E/D set.
+- Test validation rejects any living non-commander rank outside the currently unlocked F/E/D set.
 
-### Tests added for Phase 3
-- Direct $80 D purchase and controlled E→D promotion at 10 XP.
-- Controlled D aim/reload advantage with a preserved 30-second global base.
-- Four 600-second D procurement/economy samples requiring D to appear while remaining below a 30% sampled army share.
-- Existing natural siege, commander recovery, fieldwork block/reopen, controlled BREACH and UI-control gates remain in the deployed suite.
+### Phase-3 automated gate
+- Expanded to **11 deployed-browser tests**: Phase-3 invariants, direct/earned D progression, F/E economy-compatibility, D drilled fire, 300s self-play, four-seed D procurement/economy, natural siege, commander recovery, fieldwork block/reopen, controlled BREACH, and controls.
+- The first v3.0 candidate run `31351540126` passed 8/10 but failed the direct-cost assertion bug and, more importantly, failed natural siege with 0 fortress hits. The siege failure was treated as a real baseline regression and not waived.
 
 ### Acceptance convention
 - No separate human-playtest gate is required. When the user gives no comments after an update, the update is treated as accepted/good.
