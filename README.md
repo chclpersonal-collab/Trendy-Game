@@ -1,121 +1,69 @@
 # Musketeer Battle Simulator
 
-Autonomous two-army musketeer battle simulation. Development is incremental and evidence-gated: implementation is not considered complete merely because code was written. Material claims must survive the exact deployed-browser regression gate, and Phase stability still requires human playtesting when balance and feel matter.
+Autonomous two-army musketeer battle simulation developed on the single rolling branch `agent/current`. Technical completion claims are evidence-gated by the exact deployed Vercel/Playwright build. **Project acceptance convention:** when an update is delivered and the user provides no comments, that update is treated as good/accepted; no separate human-playtest gate is required.
 
 ## Current state
 
-- **Current candidate:** Phase 2 **v2.21**
-- **Class:** E Class final stabilization
-- **Experimental Pricing:** **15 / 15 — scheduled calibration series complete**
-- **Status:** **AUTOMATED VERIFIED CANDIDATE**
-- **Verified gameplay commit:** `ea1803f262263edf616da3348f152242bfa3c08b`
-- **Protected Playwright run:** `31350330442` — **8/8 passed**
-- **Economy hold:** F $10, E $32, $10/s base income, 1.60% living-army-value upkeep/s, 50% defeated-rank kill bounty
-- **Human playtest:** **REQUIRED / NOT YET COMPLETED**
-- **Phase 3 / D Class:** **BLOCKED until Phase 2 is declared stable**
-- **Commander Form II / Makashi:** locked
+- **Phase 1 / F Class:** STABLE
+- **Phase 2 / E Class:** STABLE — v2.21 passed 8/8 deployed tests and was accepted with no user comments
+- **Current:** Phase 3 **v3.0 — D-Class Foundation / Drilled Fire**
+- **Status:** candidate pending the exact deployed automated gate
+- **Pricing calibration:** 15/15 complete; Phase-2 baseline retained as the starting economy
+- **Commander Form I / Shii-Cho:** STABLE
+- **Form II / Makashi:** NEXT FORM, deliberately locked during v3.0 so D musketeers can be isolated first
 
-Patch 15 completes the planned pricing-calibration sequence; it does **not** make these values immutable. Future evidence may still justify a balance change.
+## v3.0 design
 
-## v2.21 — Final Pricing Calibration / Command-Recovery Audit
+The source roadmap defines D as Phase 3 and preserves the policy that every unlocked rank may be bought or earned, but it does not prescribe D's price or ability. v3.0 therefore uses a conservative first implementation rather than stacking multiple new systems.
 
-### Pricing Patch 15/15
+### D Class
 
-v2.21 deliberately holds the proven v2.20 economy and combat constants rather than forcing a last-minute price change for the sake of changing a number:
+- Direct price: **$80**
+- Earned promotion: **E → D at 10 total XP**
+- Direct D starts at **D·0 / 10 XP floor**
+- Kill bounty: **$40** under the existing 50%-of-rank-price rule
+- Inherits E's existing automatic bayonet charge; no extra bayonet damage is added
+- **Drilled fire:** +3.5 percentage points musket aim and a 2-second reload drill bonus
+- D reload floor: **25 seconds**; the global musket base remains 30 seconds
+- General AI target D share: roughly **2–8%**, stance-dependent, with upkeep pressure able to force cheaper procurement
 
-- F Class: **$10**
-- E Class: **$32**
-- base passive income: **$10/s**
-- upkeep: **1.60% of living army value/s**
-- kill bounty: **50% of defeated rank price**
-- base musket reload: **30s**
-- company cap: **14 musketeers per commander**
+D is intended to be a scarce elite line soldier, not an immediate replacement for E. F and E prices and core mechanics remain intact at $10 and $32.
 
-Four deterministic 600-second economy samples remained finite and active. The highest sampled treasury was about **$610.62**, far below the earlier pre-upkeep multi-thousand runaway behavior. Across the four samples there were **287 direct E-Class purchases** and **21 earned F→E promotions**, so the economy did not achieve stability merely by suppressing progression.
+## Preserved Phase-2 systems
 
-### Command-recovery audit
+v3.0 does not rewrite the proven siege or command layer. It preserves the 110-second committed siege baseline, BREACH pressure, fieldwork recruitment blocking, commander counter-charge, BRACE, physical commander replacement/rejoin, local command radii, company staging, E fortress upgrade, 14-musketeer company cap, 56-musketeer army cap, 30-second global musket base reload, and Form I Shii-Cho.
 
-v2.20 natural runs still showed large temporary uncommanded populations, so v2.21 tested a seemingly reasonable recovery change: let soldiers treat a living but company-separated commander as a physical fallback regroup target.
+## Acceptance / verification policy
 
-That experiment **failed** the unchanged natural-siege acceptance gate:
-
-- all three 600-second siege seeds produced **0 fortress hits**;
-- seed 21902 lost the v2.20 breakthrough and only reached roughly **656–765** units from the fortresses instead of the established ~214-unit conversion;
-- the new fallback caused heavy rejoin churn, with large portions of companies chasing commanders that were already physically returning toward their company.
-
-The experiment was therefore removed. The accepted rule remains simpler:
-
-- a separated living commander physically returns toward the company;
-- soldiers keep the existing local rejoin behavior once company command is functioning again;
-- precise tactical orders are not restored early;
-- command radius remains 180 at company-integrity level and 350 for individual soldier command.
-
-A deployed regression now proves the separated commander physically closes distance at the existing **28 units/s** joining speed while remaining out of command after the first second, so there is no hidden teleport or premature command restoration.
-
-## Final deployed verification
-
-The exact protected Vercel deployment for commit `ea1803f262263edf616da3348f152242bfa3c08b` passed **8/8** Playwright tests in **55.7 seconds** of browser-test execution.
-
-### Economy calibration — 4 × 600 seconds
-
-Observed maximum treasuries by seed stayed approximately between **$430 and $611**. All four runs preserved finite state, nonnegative treasury, valid fortress HP, the 14-musketeer company cap, and the 15-phase roadmap. Direct E purchases and earned E promotions occurred in every sampled run.
-
-### Natural siege — 3 × 600 seconds
-
-- Seed 21901: **0 fortress hits**.
-- Seed 21902: Right produced **4 fortress hits**, reached about **214.022** minimum fortress distance, and reduced the upgraded Left fortress from 6500 HP to about **6466.63**.
-- Seed 21903: **0 fortress hits**.
-
-This exactly restores the important v2.20 natural-breakthrough pattern after rejecting the disruptive recovery experiment. It proves natural fortress conversion remains possible; it does not prove its frequency is perfectly balanced.
-
-### Other deployed regressions
-
-The v2.21 gate also passed:
-
-- boot/runtime and Patch 15 invariants;
-- deterministic 300-second self-play;
-- physical separated-commander return without early command restoration;
-- fieldwork recruitment block and immediate reopening after relief;
-- controlled BREACH → real fortress damage;
-- Pause / Speed / Front controls;
-- canonical Form I–VII identities and current Form I lock.
-
-## Known limitations / open audit findings
-
-- Natural samples still reached **peak uncommanded populations as high as 56**. This remains an open cohesion problem, not a solved claim.
-- The rejected soldier-to-separated-commander fallback shows that a naive cohesion fix can damage siege behavior. Future cohesion work needs to preserve forward tactical continuity rather than simply minimizing the uncommanded counter.
-- The raw pre-JavaScript `game.html` still contains some legacy v2.19 / Pricing 13 labels; runtime JavaScript immediately presents v2.21 correctly. Removing that stale static metadata is a nonfunctional simplification task, not a gameplay blocker.
-- Human Vercel playtesting has not yet been completed for v2.21, so **Phase 2 is not declared stable**.
+- Failed experiments stay failed in the evidence; acceptance tests are not weakened to make a build pass.
+- Automated browser evidence proves only the scenarios it actually tests.
+- User comments are the gameplay-feedback gate. **No comments means accepted/good.**
+- If the automated gate fails, the phase does not advance regardless of the comment convention.
 
 ## Branch policy
 
-From v2.20 onward there is one active development branch:
-
 - `main` — accepted/stable baseline
-- `agent/current` — the single rolling development branch
+- `agent/current` — the only active development branch
 
-Do not create version-specific development branches such as `update/v2.21` or `update/v2.22`. Versions are preserved by commits, PR history, changelog entries, and test artifacts.
-
-Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs remain obsolete cleanup refs. Their PRs are closed and CI does not use them. Physical deletion remains blocked by the currently available GitHub connector, which exposes no branch-ref deletion operation.
+Do not create version-specific development branches. Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete cleanup refs and do not drive CI.
 
 ## Hard invariants
 
 - 15-phase class roadmap remains intact.
-- Only F and E are unlocked in Phase 2.
 - Maximum 14 musketeers per commander/company.
 - Base musket reload remains 30 seconds.
-- F melee exists only during temporary commander counter-charge orders; E keeps its autonomous bayonet charge.
-- Commander Form I is Shii-Cho only. Forms II–VII retain their canonical identities and remain locked.
-- Movement and commander replacement remain physical; no teleport regrouping.
-- Command remains local rather than global.
-- Fortress HP, treasury, actors, and telemetry must remain finite and valid.
+- F permanent melee is not introduced; F only receives temporary low-power melee under commander counter-charge.
+- E retains its autonomous bayonet charge; D inherits it rather than replacing it.
+- Command remains local and movement/regrouping physical.
+- Form I remains Shii-Cho; canonical Form II–VII identities are preserved.
+- Fortress HP, treasury, actors and telemetry must remain finite and valid.
 
 ## Roadmap
 
 1. **F Class — STABLE**
-2. **E Class — NOW: v2.21 automated gate passed; human stabilization playtest pending**
-3. **D Class — NEXT CLASS, BLOCKED until Phase 2 stability verdict**
-4. C Class
+2. **E Class — STABLE**
+3. **D Class — NOW: v3.0 foundation**
+4. **C Class — NEXT CLASS, locked until D stabilizes**
 5. B Class
 6. A Class
 7. S Class
@@ -128,20 +76,8 @@ Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs remain obsolete c
 14. SSS+ Class Type IV
 15. SSS+ Class Type V — final
 
-### Immediate next work
+### Near-term Phase 3 roadmap
 
-**NOW**
-- Human Vercel playtest of v2.21: pacing, fieldwork fairness, siege readability, recovery behavior, economy feel, and whether E progression feels meaningfully stronger without becoming dominant.
-- Review the high-uncommanded episodes visually rather than optimizing the telemetry number in isolation.
-
-**NEXT**
-- If human playtesting finds a material Phase 2 problem: make a focused v2.22 stabilization patch on `agent/current` and re-run the full deployed gate.
-- If human playtesting supports stability: record the Phase 2 stability verdict, then begin scoped D-Class design while keeping Form II locked unless its own roadmap gate is reached.
-
-**LATER**
-- Remove stale pre-JavaScript version labels and reduce remaining version-copy indirection.
-- Continue class phases 3–15 only after each prior phase satisfies its own evidence gate.
-
-## Verification policy
-
-A failed experiment stays failed in the evidence; acceptance tests are not weakened to make a candidate pass. Automated evidence can prove the tested invariants and deterministic scenarios, but human playtesting remains the final balance/feel gate before Phase 2 can be called stable.
+- **v3.0:** D musketeer foundation, direct/earned progression, drilled fire, low-share AI procurement, regression preservation.
+- **v3.1 candidate:** evaluate Form II Makashi as a separate commander-form update only after v3.0 is accepted; do not bundle it into D's first balance sample.
+- Continue cohesion investigation only with designs that preserve siege continuity; high uncommanded telemetry alone is not sufficient reason to change command behavior.

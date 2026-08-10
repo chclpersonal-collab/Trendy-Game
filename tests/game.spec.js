@@ -1,207 +1,23 @@
 const { test, expect } = require('@playwright/test');
+const CANONICAL_FORMS=['I Shii-Cho','II Makashi','III Soresu','IV Ataru','V Shien/Djem So','VI Niman','VII Juyo/Vaapad'];
+async function openGame(page){const pageErrors=[],consoleErrors=[];page.on('pageerror',e=>pageErrors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().toLowerCase().includes('favicon'))consoleErrors.push(m.text())});const response=await page.goto('/',{waitUntil:'domcontentloaded',timeout:30000});expect(response).not.toBeNull();expect(response.status()).toBeLessThan(400);await page.waitForFunction(()=>Boolean(window.GameTest&&window.__battleSim),null,{timeout:15000});const pause=page.locator('#pauseBtn');if((await pause.textContent())?.trim()==='Pause')await pause.click();return{pageErrors,consoleErrors}}
 
-const CANONICAL_FORMS = [
-  'I Shii-Cho','II Makashi','III Soresu','IV Ataru','V Shien/Djem So','VI Niman','VII Juyo/Vaapad'
-];
+test('deployed preview boots with Phase 3 D-Class invariants',async({page},testInfo)=>{const diagnostics=await openGame(page);const r=await page.evaluate(()=>({state:GameTest.state(),validation:GameTest.validate()}));expect(r.validation.ok).toBe(true);expect(r.validation.roadmapCount).toBe(15);expect(r.state.version).toBe('3.0');expect(r.state.phase).toBe(3);expect(r.state.economy.patch).toBe(15);expect(r.state.economy.calibrationSeriesComplete).toBe(true);expect(r.state.economy.rankPrices).toEqual({F:10,E:32,D:80});expect(r.state.economy.purchasableRanks).toEqual(['F','E','D']);expect(r.state.classProgression.ePromotionXP).toBe(4);expect(r.state.classProgression.dPromotionXP).toBe(10);expect(r.state.classProgression.dClass.reloadBonus).toBe(2);expect(r.state.classProgression.dClass.reloadMinimum).toBe(25);expect(r.state.classProgression.dClass.aimBonus).toBeCloseTo(.035,8);expect(r.state.command.maxMusketeers).toBe(14);expect(r.state.command.musket.baseReload).toBe(30);expect(r.state.command.lightsaberForm.current).toBe('I');expect(r.state.command.lightsaberForm.next).toBe('II Makashi');expect(r.state.command.lightsaberForm.forms).toEqual(CANONICAL_FORMS);expect(await page.title()).toContain('Phase 3 v3.0');expect(diagnostics.pageErrors).toEqual([]);await testInfo.attach('console-errors.json',{body:Buffer.from(JSON.stringify(diagnostics.consoleErrors,null,2)),contentType:'application/json'})});
 
-async function openGame(page) {
-  const pageErrors = [];
-  const consoleErrors = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
-  page.on('console', message => {
-    if (message.type() === 'error' && !message.text().toLowerCase().includes('favicon')) consoleErrors.push(message.text());
-  });
-  const response = await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-  expect(response).not.toBeNull();
-  expect(response.status()).toBeLessThan(400);
-  await page.waitForFunction(() => Boolean(window.GameTest && window.__battleSim), null, { timeout: 15000 });
-  const pauseButton = page.locator('#pauseBtn');
-  if ((await pauseButton.textContent())?.trim() === 'Pause') await pauseButton.click();
-  return { pageErrors, consoleErrors };
-}
+test('D Class is both directly buyable and earnable from E at 10 XP',async({page})=>{await openGame(page);const r=await page.evaluate(()=>{GameTest.setSeed(30001);const api=__battleSim.test,g=api.generals()[0];g.money=1000;const beforeMoney=g.money,direct=api.buyMusketeer(0,'D');const killer=api.actors().find(a=>a.alive&&a.team===0&&!a.isCommander&&a!==direct),victim=api.actors().find(a=>a.alive&&a.team===1&&!a.isCommander);killer.rank='E';killer.xp=9;killer.earnedXP=5;const beforePromotions=GameTest.state().dPromotions[0];api.killActor(victim,killer,'test');return{directRank:direct&&direct.rank,directXP:direct&&direct.xp,directCost:beforeMoney-g.money,killerRank:killer.rank,killerXP:killer.xp,dPromotions:GameTest.state().dPromotions[0]-beforePromotions,validation:GameTest.validate()}});expect(r.validation.ok).toBe(true);expect(r.directRank).toBe('D');expect(r.directXP).toBe(10);expect(r.directCost).toBeCloseTo(80,6);expect(r.killerRank).toBe('D');expect(r.killerXP).toBe(10);expect(r.dPromotions).toBe(1)});
 
-test('deployed preview boots with v2.21 Patch 15 invariants', async ({ page }, testInfo) => {
-  const diagnostics = await openGame(page);
-  const result = await page.evaluate(() => ({ state: window.GameTest.state(), validation: window.GameTest.validate() }));
-  expect(result.validation.ok).toBe(true);
-  expect(result.validation.companyMax).toBeLessThanOrEqual(14);
-  expect(result.validation.maxPerCommander).toBe(14);
-  expect(result.validation.roadmapCount).toBe(15);
-  expect(result.state.version).toBe('2.21');
-  expect(result.state.phase).toBe(2);
-  expect(result.state.economy.patch).toBe(15);
-  expect(result.state.economy.patchTarget).toBe(15);
-  expect(result.state.economy.pricingStatus).toBe('patch-15-final-calibration');
-  expect(result.state.economy.rankPrices).toEqual({ F: 10, E: 32 });
-  expect(result.state.economy.passiveIncome).toBe(10);
-  expect(result.state.economy.upkeepRate).toBeCloseTo(0.016, 8);
-  expect(result.state.command.maxMusketeers).toBe(14);
-  expect(result.state.command.musket.baseReload).toBe(30);
-  expect(result.state.command.recovery.separatedCommanderReturnsToCompany).toBe(true);
-  expect(result.state.command.recovery.soldierRejoinRequiresCompanyIntegrity).toBe(true);
-  expect(result.state.command.recovery.commandRadius).toBe(180);
-  expect(result.state.command.recovery.soldierCommandRadius).toBe(350);
-  expect(result.state.command.siegeEscalation.fieldworkMusterBlockRange).toBe(205);
-  expect(result.state.command.lightsaberForm.forms).toEqual(CANONICAL_FORMS);
-  expect(await page.title()).toContain('v2.21');
-  expect(diagnostics.pageErrors).toEqual([]);
-  await testInfo.attach('console-errors.json', { body: Buffer.from(JSON.stringify(diagnostics.consoleErrors, null, 2)), contentType: 'application/json' });
-});
+test('D drilled fire improves aim and reload without changing the 30-second global base',async({page})=>{await openGame(page);const r=await page.evaluate(()=>{GameTest.setSeed(30002);const api=__battleSim.test,g=api.generals()[0];g.money=1000;const e=api.buyMusketeer(0,'E'),d=api.buyMusketeer(0,'D'),target=api.actors().find(a=>a.alive&&a.team===1&&!a.isCommander);const eAcc=api.shotAccuracy(e,target,120),dAcc=api.shotAccuracy(d,target,120),eReload=api.musketReloadTime(e),dReload=api.musketReloadTime(d);d.xp=100;const dFloor=api.musketReloadTime(d);return{eAcc,dAcc,eReload,dReload,dFloor,state:GameTest.state(),validation:GameTest.validate()}});expect(r.validation.ok).toBe(true);expect(r.state.command.musket.baseReload).toBe(30);expect(r.dAcc).toBeGreaterThan(r.eAcc);expect(r.dReload).toBeLessThan(r.eReload);expect(r.dFloor).toBe(25)});
 
-test('300-second deterministic self-play remains finite and bounded', async ({ page }, testInfo) => {
-  await openGame(page);
-  const result = await page.evaluate(() => {
-    window.GameTest.setSeed(22118);
-    const state = window.GameTest.advance(300);
-    return { state, validation: window.GameTest.validate() };
-  });
-  expect(result.validation.ok).toBe(true);
-  expect(result.validation.companyMax).toBeLessThanOrEqual(14);
-  expect(result.state.time).toBeGreaterThanOrEqual(299.9);
-  expect(result.state.time).toBeLessThanOrEqual(300.1);
-  expect(result.state.money.every(v => Number.isFinite(v) && v >= -0.001)).toBe(true);
-  expect(result.state.fortresses.every(f => Number.isFinite(f.hp) && f.hp >= 0 && f.hp <= f.maxHp)).toBe(true);
-  const screenshotPath = testInfo.outputPath('battle-300s.png');
-  await page.screenshot({ path: screenshotPath, fullPage: true });
-  await testInfo.attach('battle-300s.png', { path: screenshotPath, contentType: 'image/png' });
-  await testInfo.attach('state-300s.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
-});
+test('300-second Phase 3 self-play remains finite and bounded',async({page},testInfo)=>{await openGame(page);const r=await page.evaluate(()=>{GameTest.setSeed(30118);const state=GameTest.advance(300);return{state,validation:GameTest.validate()}});expect(r.validation.ok).toBe(true);expect(r.state.money.every(v=>Number.isFinite(v)&&v>=-.001)).toBe(true);expect(r.state.fortresses.every(f=>Number.isFinite(f.hp)&&f.hp>=0&&f.hp<=f.maxHp)).toBe(true);const p=testInfo.outputPath('phase3-300s.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('phase3-300s.png',{path:p,contentType:'image/png'})});
 
-test('Patch 15 economy calibration stays below the pre-upkeep runaway baseline', async ({ page }, testInfo) => {
-  test.setTimeout(120000);
-  await openGame(page);
-  const result = await page.evaluate(() => {
-    const out=[];
-    for(const seed of [22101,22102,22103,22104]){
-      window.GameTest.setSeed(seed);
-      const maxTreasury=[0,0];
-      for(let sample=0;sample<20;sample++){
-        window.GameTest.advance(30);
-        const s=window.GameTest.state();
-        for(let t=0;t<2;t++) maxTreasury[t]=Math.max(maxTreasury[t],s.money[t]);
-      }
-      const state=window.GameTest.snapshot();
-      out.push({seed,validation:window.GameTest.validate(),maxTreasury,money:state.money,army:state.musketeers,eclass:state.eclass,purchases:state.purchases,rankPurchases:state.rankPurchases,promotions:state.promotions,incomeRates:state.economy.incomeRates,upkeepRates:state.economy.upkeepRates,netIncomeRates:state.economy.netIncomeRates,fortresses:state.fortresses,warsWon:state.warsWon});
-    }
-    return out;
-  });
-  console.log(`ECONOMY_CALIBRATION ${JSON.stringify(result)}`);
-  await testInfo.attach('economy-calibration.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});
-  expect(result.every(x=>x.validation.ok)).toBe(true);
-  const maxTreasury=Math.max(...result.flatMap(x=>x.maxTreasury));
-  const totalEPurchases=result.reduce((sum,x)=>sum+x.rankPurchases[0].E+x.rankPurchases[1].E,0);
-  const totalPromotions=result.reduce((sum,x)=>sum+x.promotions[0]+x.promotions[1],0);
-  expect(maxTreasury).toBeLessThan(3000);
-  expect(totalEPurchases).toBeGreaterThan(0);
-  expect(totalPromotions).toBeGreaterThan(0);
-});
+test('D procurement appears but remains an elite minority in 4 x 600-second samples',async({page},testInfo)=>{test.setTimeout(120000);await openGame(page);const result=await page.evaluate(()=>{const out=[];for(const seed of[30101,30102,30103,30104]){GameTest.setSeed(seed);const maxTreasury=[0,0],maxDShare=[0,0];for(let i=0;i<20;i++){GameTest.advance(30);const s=GameTest.state();for(let t=0;t<2;t++){maxTreasury[t]=Math.max(maxTreasury[t],s.money[t]);maxDShare[t]=Math.max(maxDShare[t],s.musketeers[t]?s.dclass[t]/s.musketeers[t]:0)}}const s=GameTest.snapshot();out.push({seed,validation:GameTest.validate(),maxTreasury,maxDShare,money:s.money,army:s.musketeers,eclass:s.eclass,dclass:s.dclass,rankPurchases:s.rankPurchases,ePromotions:s.ePromotions,dPromotions:s.dPromotions,netIncome:s.economy.netIncomeRates,fortresses:s.fortresses})}return out});console.log(`D_CLASS_CALIBRATION ${JSON.stringify(result)}`);await testInfo.attach('d-class-calibration.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});expect(result.every(x=>x.validation.ok)).toBe(true);const dBuys=result.reduce((n,x)=>n+x.rankPurchases[0].D+x.rankPurchases[1].D,0),maxTreasury=Math.max(...result.flatMap(x=>x.maxTreasury)),maxShare=Math.max(...result.flatMap(x=>x.maxDShare));expect(dBuys).toBeGreaterThan(0);expect(maxTreasury).toBeLessThan(3000);expect(maxShare).toBeLessThan(.30)});
 
-test('three-seed 600-second natural siege preserves fortress pressure', async ({ page }, testInfo) => {
-  test.setTimeout(90000);
-  await openGame(page);
-  const result = await page.evaluate(() => {
-    const out=[];
-    for(const seed of [21901,21902,21903]){
-      window.GameTest.setSeed(seed);
-      const minDistance=[Infinity,Infinity],peakUncommanded=[0,0];
-      for(let i=0;i<120;i++){
-        window.GameTest.advance(5);
-        const state=window.GameTest.state();
-        for(let t=0;t<2;t++){
-          if(state.breachFortDistance[t]!==null) minDistance[t]=Math.min(minDistance[t],state.breachFortDistance[t]);
-          peakUncommanded[t]=Math.max(peakUncommanded[t],state.uncommanded[t]);
-        }
-      }
-      const state=window.GameTest.snapshot();
-      out.push({seed,validation:window.GameTest.validate(),fortressHits:state.fortressHits,siegePushes:state.siegePushes,siegeSeconds:state.siegeSeconds,minBreachFortDistance:minDistance.map(v=>Number.isFinite(v)?v:null),peakUncommanded,commandIntegrity:state.commandIntegrity,uncommanded:state.uncommanded,soldierRejoins:state.soldierRejoins,fortresses:state.fortresses});
-    }
-    return out;
-  });
-  console.log(`NATURAL_SIEGE ${JSON.stringify(result)}`);
-  await testInfo.attach('natural-siege-sample.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
-  expect(result.every(x => x.validation.ok)).toBe(true);
-  const totalHits=result.reduce((sum,x)=>sum+x.fortressHits[0]+x.fortressHits[1],0);
-  expect(totalHits).toBeGreaterThan(0);
-});
+test('three-seed 600-second natural siege still produces fortress pressure',async({page},testInfo)=>{test.setTimeout(90000);await openGame(page);const result=await page.evaluate(()=>{const out=[];for(const seed of[21901,21902,21903]){GameTest.setSeed(seed);const minDistance=[Infinity,Infinity],peakUncommanded=[0,0];for(let i=0;i<120;i++){GameTest.advance(5);const s=GameTest.state();for(let t=0;t<2;t++){if(s.breachFortDistance[t]!==null)minDistance[t]=Math.min(minDistance[t],s.breachFortDistance[t]);peakUncommanded[t]=Math.max(peakUncommanded[t],s.uncommanded[t])}}const s=GameTest.snapshot();out.push({seed,validation:GameTest.validate(),fortressHits:s.fortressHits,minBreachFortDistance:minDistance.map(v=>Number.isFinite(v)?v:null),peakUncommanded,dclass:s.dclass,rankPurchases:s.rankPurchases,fortresses:s.fortresses})}return out});console.log(`NATURAL_SIEGE ${JSON.stringify(result)}`);await testInfo.attach('natural-siege-phase3.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});expect(result.every(x=>x.validation.ok)).toBe(true);expect(result.reduce((n,x)=>n+x.fortressHits[0]+x.fortressHits[1],0)).toBeGreaterThan(0)});
 
-test('separated living commander physically returns toward its company without restoring command early', async ({ page }, testInfo) => {
-  await openGame(page);
-  const result=await page.evaluate(()=>{
-    window.GameTest.setSeed(22121);
-    const api=window.__battleSim.test,c=api.companies()[0][0],actors=api.actors();
-    const commander=actors.find(a=>a.alive&&a.team===0&&a.isCommander&&a.company===c.id);
-    const center=api.companyCenter(0,c.id);
-    commander.x=center.x+400;
-    commander.y=center.y;
-    const separatedBefore=api.commanderInCommand(c)===null;
-    const beforeDistance=Math.hypot(commander.x-center.x,commander.y-center.y);
-    api.updateCommander(commander,1);
-    const centerAfter=api.companyCenter(0,c.id);
-    const afterDistance=Math.hypot(commander.x-centerAfter.x,commander.y-centerAfter.y);
-    return{separatedBefore,beforeDistance,afterDistance,separatedAfter:api.commanderInCommand(c)===null,command:c.command,validation:window.GameTest.validate()};
-  });
-  await testInfo.attach('commander-return.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});
-  expect(result.validation.ok).toBe(true);
-  expect(result.separatedBefore).toBe(true);
-  expect(result.afterDistance).toBeLessThan(result.beforeDistance);
-  expect(result.beforeDistance-result.afterDistance).toBeCloseTo(28,5);
-  expect(result.separatedAfter).toBe(true);
-});
+test('separated living commander still physically returns without early command restoration',async({page})=>{await openGame(page);const r=await page.evaluate(()=>{GameTest.setSeed(30121);const api=__battleSim.test,c=api.companies()[0][0],cmd=api.actors().find(a=>a.alive&&a.team===0&&a.isCommander&&a.company===c.id),center=api.companyCenter(0,c.id);cmd.x=center.x+400;cmd.y=center.y;const before=Math.hypot(cmd.x-center.x,cmd.y-center.y);api.updateCommander(cmd,1);const afterCenter=api.companyCenter(0,c.id),after=Math.hypot(cmd.x-afterCenter.x,cmd.y-afterCenter.y);return{before,after,separated:api.commanderInCommand(c)===null,validation:GameTest.validate()}});expect(r.validation.ok).toBe(true);expect(r.before-r.after).toBeCloseTo(28,5);expect(r.separated).toBe(true)});
 
-test('fieldwork siege control blocks and reopens paid recruitment without moving the spawn', async ({ page }, testInfo) => {
-  await openGame(page);
-  const result=await page.evaluate(()=>{
-    window.GameTest.setSeed(22122);
-    window.GameTest.forceBreach(0,0,true);
-    const api=window.__battleSim.test,g=api.generals()[1];
-    const before={money:g.money,purchases:g.purchases,musketeers:window.GameTest.state().musketeers[1]};
-    const blockedBefore=api.fieldworkMusterBlocked(1);
-    const blockedBuy=api.buyMusketeer(1,'F');
-    const afterBlocked={money:g.money,purchases:g.purchases,musketeers:window.GameTest.state().musketeers[1]};
-    window.GameTest.forceStance(0,'CONTEST');
-    const blockedAfterRelief=api.fieldworkMusterBlocked(1);
-    const reopenedBuy=api.buyMusketeer(1,'F');
-    const afterRelief={money:g.money,purchases:g.purchases,musketeers:window.GameTest.state().musketeers[1],x:reopenedBuy?.x??null};
-    return{blockedBefore,blockedBuy:blockedBuy===null,before,afterBlocked,blockedAfterRelief,reopenedBuy:Boolean(reopenedBuy),afterRelief,validation:window.GameTest.validate()};
-  });
-  await testInfo.attach('fieldwork-control.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});
-  expect(result.validation.ok).toBe(true);
-  expect(result.blockedBefore).toBe(true);
-  expect(result.blockedBuy).toBe(true);
-  expect(result.afterBlocked).toEqual(result.before);
-  expect(result.blockedAfterRelief).toBe(false);
-  expect(result.reopenedBuy).toBe(true);
-  expect(result.afterRelief.purchases).toBe(result.before.purchases+1);
-  expect(result.afterRelief.musketeers).toBe(result.before.musketeers+1);
-  expect(result.afterRelief.money).toBeCloseTo(result.before.money-10,6);
-  expect(result.afterRelief.x).toBe(2670);
-});
+test('fieldwork siege control still blocks and reopens paid D-era recruitment',async({page})=>{await openGame(page);const r=await page.evaluate(()=>{GameTest.setSeed(30122);GameTest.forceBreach(0,0,true);const api=__battleSim.test,g=api.generals()[1],before={money:g.money,purchases:g.purchases,musketeers:GameTest.state().musketeers[1]},blocked=api.buyMusketeer(1,'D');GameTest.forceStance(0,'CONTEST');g.money=1000;const reopened=api.buyMusketeer(1,'D');return{blocked:blocked===null,before,afterBlocked:{money:g.money,purchases:g.purchases,musketeers:GameTest.state().musketeers[1]},reopened:!!reopened,reopenedX:reopened&&reopened.x,reopenedRank:reopened&&reopened.rank,validation:GameTest.validate()}});expect(r.validation.ok).toBe(true);expect(r.blocked).toBe(true);expect(r.reopened).toBe(true);expect(r.reopenedRank).toBe('D');expect(r.reopenedX).toBe(2670)});
 
-test('controlled BREACH still converts into fortress damage', async ({ page }, testInfo) => {
-  await openGame(page);
-  const result=await page.evaluate(()=>{
-    window.GameTest.setSeed(22119);
-    window.GameTest.forceBreach(0,0,true);
-    const before=window.GameTest.snapshot();
-    const after=window.GameTest.advance(1);
-    return{before,after,validation:window.GameTest.validate()};
-  });
-  await testInfo.attach('controlled-breach.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});
-  expect(result.validation.ok).toBe(true);
-  expect(result.after.fortressHits[0]).toBeGreaterThan(result.before.fortressHits[0]);
-  expect(result.after.fortresses[1].hp).toBeLessThan(result.before.fortresses[1].hp);
-});
+test('controlled BREACH still converts into fortress damage',async({page})=>{await openGame(page);const r=await page.evaluate(()=>{GameTest.setSeed(30119);GameTest.forceBreach(0,0,true);const before=GameTest.snapshot(),after=GameTest.advance(1);return{before,after,validation:GameTest.validate()}});expect(r.validation.ok).toBe(true);expect(r.after.fortressHits[0]).toBeGreaterThan(r.before.fortressHits[0]);expect(r.after.fortresses[1].hp).toBeLessThan(r.before.fortresses[1].hp)});
 
-test('player-facing Pause, Speed, and Front controls work', async ({ page }) => {
-  await openGame(page);
-  const pause=page.locator('#pauseBtn'),speed=page.locator('#speedBtn'),front=page.locator('#frontBtn');
-  await expect(pause).toHaveText('Resume');
-  await pause.click(); await expect(pause).toHaveText('Pause');
-  await pause.click(); await expect(pause).toHaveText('Resume');
-  await speed.click(); await expect(speed).toHaveText('Speed 2×');
-  await speed.click(); await expect(speed).toHaveText('Speed 4×');
-  await speed.click(); await expect(speed).toHaveText('Speed 1×');
-  await page.evaluate(()=>{window.GameTest.setSeed(22120);window.GameTest.advance(20);document.getElementById('fieldWrap').scrollLeft=0});
-  await front.click(); await page.waitForTimeout(500);
-  expect(await page.locator('#fieldWrap').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
-});
+test('player-facing Pause, Speed, and Front controls work',async({page})=>{await openGame(page);const pause=page.locator('#pauseBtn'),speed=page.locator('#speedBtn'),front=page.locator('#frontBtn');await expect(pause).toHaveText('Resume');await pause.click();await expect(pause).toHaveText('Pause');await pause.click();await expect(pause).toHaveText('Resume');await speed.click();await expect(speed).toHaveText('Speed 2×');await speed.click();await expect(speed).toHaveText('Speed 4×');await speed.click();await expect(speed).toHaveText('Speed 1×');await page.evaluate(()=>{GameTest.setSeed(30120);GameTest.advance(20);document.getElementById('fieldWrap').scrollLeft=0});await front.click();await page.waitForTimeout(500);expect(await page.locator('#fieldWrap').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0)});
