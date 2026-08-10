@@ -37,8 +37,8 @@ test('deployed preview boots with v2.21 Patch 15 invariants', async ({ page }, t
   expect(result.state.economy.upkeepRate).toBeCloseTo(0.016, 8);
   expect(result.state.command.maxMusketeers).toBe(14);
   expect(result.state.command.musket.baseReload).toBe(30);
-  expect(result.state.command.recovery.rawCommanderRegroupTarget).toBe(true);
-  expect(result.state.command.recovery.tacticalOrdersRequireCompanyIntegrity).toBe(true);
+  expect(result.state.command.recovery.separatedCommanderReturnsToCompany).toBe(true);
+  expect(result.state.command.recovery.soldierRejoinRequiresCompanyIntegrity).toBe(true);
   expect(result.state.command.recovery.commandRadius).toBe(180);
   expect(result.state.command.recovery.soldierCommandRadius).toBe(350);
   expect(result.state.command.siegeEscalation.fieldworkMusterBlockRange).toBe(205);
@@ -96,25 +96,24 @@ test('Patch 15 economy calibration stays below the pre-upkeep runaway baseline',
   expect(totalPromotions).toBeGreaterThan(0);
 });
 
-test('three-seed 600-second natural siege preserves pressure and records cohesion recovery', async ({ page }, testInfo) => {
+test('three-seed 600-second natural siege preserves fortress pressure', async ({ page }, testInfo) => {
   test.setTimeout(90000);
   await openGame(page);
   const result = await page.evaluate(() => {
     const out=[];
     for(const seed of [21901,21902,21903]){
       window.GameTest.setSeed(seed);
-      const minDistance=[Infinity,Infinity],peakUncommanded=[0,0],peakRejoining=[0,0];
+      const minDistance=[Infinity,Infinity],peakUncommanded=[0,0];
       for(let i=0;i<120;i++){
         window.GameTest.advance(5);
         const state=window.GameTest.state();
         for(let t=0;t<2;t++){
           if(state.breachFortDistance[t]!==null) minDistance[t]=Math.min(minDistance[t],state.breachFortDistance[t]);
           peakUncommanded[t]=Math.max(peakUncommanded[t],state.uncommanded[t]);
-          peakRejoining[t]=Math.max(peakRejoining[t],state.rejoining[t]);
         }
       }
       const state=window.GameTest.snapshot();
-      out.push({seed,validation:window.GameTest.validate(),fortressHits:state.fortressHits,siegePushes:state.siegePushes,siegeSeconds:state.siegeSeconds,minBreachFortDistance:minDistance.map(v=>Number.isFinite(v)?v:null),peakUncommanded,peakRejoining,commandIntegrity:state.commandIntegrity,uncommanded:state.uncommanded,rejoining:state.rejoining,soldierRejoins:state.soldierRejoins,fortresses:state.fortresses});
+      out.push({seed,validation:window.GameTest.validate(),fortressHits:state.fortressHits,siegePushes:state.siegePushes,siegeSeconds:state.siegeSeconds,minBreachFortDistance:minDistance.map(v=>Number.isFinite(v)?v:null),peakUncommanded,commandIntegrity:state.commandIntegrity,uncommanded:state.uncommanded,soldierRejoins:state.soldierRejoins,fortresses:state.fortresses});
     }
     return out;
   });
@@ -125,29 +124,28 @@ test('three-seed 600-second natural siege preserves pressure and records cohesio
   expect(totalHits).toBeGreaterThan(0);
 });
 
-test('separated living commander remains a physical regroup target without restoring tactical command', async ({ page }, testInfo) => {
+test('separated living commander physically returns toward its company without restoring command early', async ({ page }, testInfo) => {
   await openGame(page);
   const result=await page.evaluate(()=>{
     window.GameTest.setSeed(22121);
     const api=window.__battleSim.test,c=api.companies()[0][0],actors=api.actors();
     const commander=actors.find(a=>a.alive&&a.team===0&&a.isCommander&&a.company===c.id);
-    const soldier=actors.find(a=>a.alive&&a.team===0&&!a.isCommander&&a.company===c.id);
-    commander.x=700;
-    soldier.x=1200;
-    soldier.y=commander.y;
-    const commanderSeparated=api.commanderInCommand(c)===null;
-    const beforeDistance=Math.hypot(commander.x-soldier.x,commander.y-soldier.y);
-    api.updateMusketeer(soldier,1);
-    const afterDistance=Math.hypot(commander.x-soldier.x,commander.y-soldier.y);
-    return{commanderSeparated,beforeDistance,afterDistance,rejoining:!!soldier.rejoining,companyStillSeparated:api.commanderInCommand(c)===null,validation:window.GameTest.validate()};
+    const center=api.companyCenter(0,c.id);
+    commander.x=center.x+400;
+    commander.y=center.y;
+    const separatedBefore=api.commanderInCommand(c)===null;
+    const beforeDistance=Math.hypot(commander.x-center.x,commander.y-center.y);
+    api.updateCommander(commander,1);
+    const centerAfter=api.companyCenter(0,c.id);
+    const afterDistance=Math.hypot(commander.x-centerAfter.x,commander.y-centerAfter.y);
+    return{separatedBefore,beforeDistance,afterDistance,separatedAfter:api.commanderInCommand(c)===null,command:c.command,validation:window.GameTest.validate()};
   });
-  await testInfo.attach('separated-commander-recovery.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});
+  await testInfo.attach('commander-return.json',{body:Buffer.from(JSON.stringify(result,null,2)),contentType:'application/json'});
   expect(result.validation.ok).toBe(true);
-  expect(result.commanderSeparated).toBe(true);
-  expect(result.rejoining).toBe(true);
+  expect(result.separatedBefore).toBe(true);
   expect(result.afterDistance).toBeLessThan(result.beforeDistance);
-  expect(result.beforeDistance-result.afterDistance).toBeCloseTo(26,5);
-  expect(result.companyStillSeparated).toBe(true);
+  expect(result.beforeDistance-result.afterDistance).toBeCloseTo(28,5);
+  expect(result.separatedAfter).toBe(true);
 });
 
 test('fieldwork siege control blocks and reopens paid recruitment without moving the spawn', async ({ page }, testInfo) => {
