@@ -1,5 +1,70 @@
 # Changelog
 
+## Phase 3 v3.1 — Adaptive Company Cohesion
+
+### Major / Command Rework — Commander-Chosen 2–14 Soldier Companies
+- Commanders now choose a **target company load from 2–14 musketeers** instead of treating 14 as the default working size.
+- Mission posture biases the choice: **BUILD 2–6, DEFEND 4–8, CONTEST 5–10, ATTACK 8–12, SIEGE 10–14**.
+- High upkeep pressure pushes new commanders toward smaller targets.
+- Runtime doctrine labels are **LEAN** (2–5), **BALANCED** (6–10), and **MASS** (11–14).
+- The hard maximum remains 14 living musketeers per company.
+
+### AI / Structural Rework — Preserve the 150-Soldier Ceiling
+- Added an **11-company maximum per army**, matching `ceil(150 / 14)`.
+- Recruitment fills each command only to its chosen target before opening another company while commander slots remain.
+- If all 11 company slots are occupied and the General still needs soldiers, existing commanders may expand target load by one at a time up to 14.
+- Expansion favors active BREACH/SIEGE/CHARGE/ADVANCE commands and already-larger companies.
+- This prevents unlimited commander spam from tiny companies while preserving a real path to the 150-musketeer hard ceiling.
+
+### Cohesion Rework — Smaller Is Tighter, Larger Is Heavier
+- Cohesion scales continuously with current living company load from **1.22 at 2 soldiers** to **0.84 at 14 soldiers**.
+- Smaller companies begin longitudinal cohesion correction at tighter spacing, reform vertically faster, receive shorter commander decision intervals, and synchronize formal volleys faster.
+- Larger companies sacrifice some coordination for more simultaneous musket mass and greater attrition depth.
+- Existing threshold mechanics create additional large-company advantages: formal volleys require at least 4 ready musketeers, counter-charge evaluation requires at least 5 company musketeers, and BREACH viability requires at least 6.
+- No raw musket damage, generic accuracy, global reload, or rank-stat bonus was added to small companies.
+
+### Audit / Validation Hardening
+- Runtime state now exposes company target size, doctrine, cohesion factor, cohesion spacing threshold, formation speed, decision scale, volley synchronization time, and target-size expansion count.
+- `GameTest.validate()` now rejects company target sizes outside 2–14 and armies exceeding 11 companies, in addition to the existing 14-per-company and 150-per-army checks.
+- Test API exposes the company sizing/cohesion functions for direct tradeoff verification.
+- Package version advanced to **3.1.0**.
+
+### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
+- Verified gameplay HEAD: `b207d8ff686a14e736a5a8f868984272187b6348`.
+- Protected Vercel preview: `trendy-game-m98ojans8-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run **`31355086417` passed 14/14 Playwright tests** in about **5.1 minutes** of browser-test execution.
+- Evidence artifact ID: `9050434042`.
+- Exact tests covered the 0-soldier reset, direct small-vs-large cohesion tradeoffs, 151st-purchase rejection, D progression and Assault Drill, Phase-2 F/E economy compatibility, autonomous 300-second play, four 600-second economy samples, nine 900-second natural-siege samples, physical commander return, fieldwork recruitment control, controlled BREACH damage, and UI controls.
+
+### Adaptive-Company Economy Audit — 4 × 600 Seconds
+- Seeds 32101–32104 all preserved finite state, nonnegative treasury, valid fortress HP, company/army limits, unlocked ranks, and the 15-phase roadmap.
+- Peak living army size across the four samples was **59 musketeers**.
+- Peak company count reached the full **11-company** structural limit without exceeding it.
+- Maximum sampled D share was about **5.56%**.
+- Company targets naturally varied across lean, balanced, and mass commands, including values from 3 through 14 in this four-seed set.
+- Highest sampled treasury was about **$1,474.37** in seed 32103. This remains below the $3,000 automated ceiling and is technically bounded, but is materially higher than earlier zero-start samples and remains an explicit balance observation.
+
+### Adaptive-Company Natural Siege Audit — 9 × 900 Seconds
+- Seeds 32201–32209 all preserved technical invariants, remained below 150 musketeers per army, and stayed at or below 11 companies.
+- Natural commander choices included **2-soldier target companies**, proving small-company doctrine occurs autonomously rather than only in direct unit tests.
+- **Seed 32205:** Right produced **6 fortress hits**, reached about **214.324** minimum BREACH distance, and reduced the Left E fortress from 6500 HP to about **6454.65**. Peak armies were 60 / 59; peak company counts 11 / 10.
+- **Seed 32206:** Left produced **117 fortress hits**, reached about **214.194** minimum BREACH distance, and reduced the Right F fortress from 4500 HP to about **3575.58**. Peak armies were 61 / 58; peak company counts 11 / 10.
+- The other seven sampled seeds produced zero fortress hits.
+- Natural fortress conversion therefore remains possible under adaptive company sizing.
+
+### Balance Audit — Sustained BREACH Warning
+- Seed 32206's **117-hit** sustained BREACH is not a technical invariant failure and did not destroy the fortress during the sample, but it is much heavier siege pressure than prior Phase-3 samples.
+- The result is recorded as a balance warning rather than hidden or normalized away.
+- v3.2 should audit sustained siege pressure before stacking another commander combat multiplier such as Makashi.
+
+### Roadmap
+- F Class — STABLE.
+- E Class — STABLE.
+- D Class — **NOW: v3.1 automated verified candidate**.
+- C Class — NEXT CLASS, still locked until Phase-3 company/economy pressure stabilizes.
+- Form I Shii-Cho — STABLE.
+- Form II Makashi — still the next commander-form candidate, but deferred from this update; v3.2 should first audit the v3.1 siege-pressure and treasury observations.
+
 ## Phase 3 v3.0 — D-Class Foundation / Assault Drill
 
 ### Major Rework — Zero-Start Armies / 150-Soldier Ceiling
@@ -89,7 +154,7 @@
 - Automated technical failures still block advancement.
 - After a technically verified update is delivered, **no user comments means accepted/good**.
 - C Class remains locked until D is accepted/stabilized.
-- **Form II — Makashi** remains the leading v3.1 candidate.
+- **Form II — Makashi** remained the leading post-v3.0 candidate before v3.1 prioritized adaptive company cohesion.
 
 ## Phase 2 v2.21 — Final Pricing Calibration / Command-Recovery Audit
 
