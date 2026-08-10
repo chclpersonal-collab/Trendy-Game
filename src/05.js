@@ -1,7 +1,8 @@
 'use strict';
 function companyEnemyRange(team,c){let best=Infinity;for(const a of companyMusketeers(team,c.id)){const e=enemyOf(a);if(e)best=Math.min(best,Math.hypot(e.x-a.x,e.y-a.y))}return best}
 function activeCommandSource(c){const cmd=commanderFor(c);return cmd&&(!cmd.replacementUnit||cmd.joinedCommand)?cmd:null}
-function soldierCommander(a){if(!a||a.isCommander)return null;return activeCommandSource(companyFor(a.team,a.company))}
+function soldierCommander(a){if(!a||a.isCommander)return null;const cmd=activeCommandSource(companyFor(a.team,a.company));return cmd&&Math.hypot(cmd.x-a.x,cmd.y-a.y)<=SOLDIER_COMMAND_RADIUS?cmd:null}
+function ownCommanderAlive(a){if(a&&a.isCommander)return true;return !!(a&&activeCommandSource(companyFor(a.team,a.company)))}
 function commandIntegrity(team){const active=generals[team].companies.filter(c=>companyMusketeers(team,c.id).length>0);if(!active.length)return 1;return active.filter(c=>!!activeCommandSource(c)).length/active.length}
 function commandProximityIntegrity(team){const active=generals[team].companies.filter(c=>companyMusketeers(team,c.id).length>0);if(!active.length)return 1;return active.filter(c=>!!commanderInCommand(c)).length/active.length}
 function assignedBreachStillViable(team,c){return !!(c&&companyMusketeers(team,c.id).length>=BREACH_MIN_MEN&&activeCommandSource(c))}
