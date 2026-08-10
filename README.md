@@ -18,14 +18,14 @@ Patch 14 deliberately holds the global economy at F $10, E $32, $10/s base incom
 
 The v2.19 fieldwork rule said paid reinforcements were tied to fieldworks, but the implementation still spawned paid musketeers near the fortress. v2.20 closes that mismatch:
 
-- normal paid musketeers physically muster **55 world units behind their fieldwork**;
+- normal paid musketeers physically muster **150 world units behind their fieldwork** in a rear staging zone;
 - a viable enemy BREACH within **205 world units** still blocks that paid fieldwork muster;
 - if the blocked defender falls below **7 musketeers**, the fortress can release **one emergency F reserve at a time for $15**;
 - emergency reserve cannot buy E Class and stops once the army recovers to 7;
 - the initial 14-musketeer armies still deploy from the fortress, preserving opening-battle pacing;
 - free replacement commanders keep their existing safe-fieldwork / fortress-fallback deployment logic.
 
-This removes the siege recruitment hard-lock while preserving a real reward for deep territorial pressure. It also shortens the normal reinforcement march, which should reduce avoidable long-lived stragglers without increasing the local command radius.
+The first 55-unit candidate over-strengthened fieldwork reinforcement and caused the established three-seed natural-siege gate to fall to zero fortress hits. The 150-unit rear staging distance is the smallest responsible balance correction being tested next: reinforcements still originate from fieldwork logistics, but they do not appear almost directly on top of a contested line.
 
 ## Branch policy
 

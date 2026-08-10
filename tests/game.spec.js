@@ -44,7 +44,7 @@ test('deployed preview boots and preserves core invariants', async ({ page }, te
   expect(result.state.economy.emergencyFPrice).toBe(15);
   expect(result.state.economy.emergencyFortressMaxBuy).toBe(1);
   expect(result.state.economy.recoveryThreshold).toBe(7);
-  expect(result.state.economy.paidMusterX).toEqual([770, 2230]);
+  expect(result.state.economy.paidMusterX).toEqual([675, 2325]);
   expect(result.state.economy.fortressReserveX).toEqual([330, 2670]);
   expect(result.state.command.maxMusketeers).toBe(14);
   expect(result.state.command.musket.baseReload).toBe(30);
@@ -196,7 +196,7 @@ test('fieldwork muster is physical and fortress reserve prevents a siege hard lo
   expect(result.afterRelief.emergencyPurchases).toBe(result.before.emergencyPurchases + 1);
   expect(result.afterRelief.musketeers).toBe(result.before.musketeers + 2);
   expect(result.afterRelief.money).toBeCloseTo(result.before.money - 25, 6);
-  expect(result.afterRelief.x).toBe(2230);
+  expect(result.afterRelief.x).toBe(2325);
 });
 
 test('controlled BREACH converts into real fortress damage', async ({ page }, testInfo) => {

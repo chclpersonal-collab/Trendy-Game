@@ -1,5 +1,5 @@
 'use strict';
-const PAID_MUSTER_OFFSET=55,FIELDWORK_MUSTER_BLOCK_RANGE=BASE_RANGE,RECOVERY_ARMY=7,EMERGENCY_F_COST=15,EMERGENCY_MAX_BUY=1;
+const PAID_MUSTER_OFFSET=150,FIELDWORK_MUSTER_BLOCK_RANGE=BASE_RANGE,RECOVERY_ARMY=7,EMERGENCY_F_COST=15,EMERGENCY_MAX_BUY=1;
 function fortressMusterX(team){return team===0?330:2670}
 function fieldworkMusterX(team){const fw=team===0?LEFT_FIELDWORK:RIGHT_FIELDWORK,dir=team===0?1:-1;return fw-dir*PAID_MUSTER_OFFSET}
 function musketeerMusterX(team,emergency=false,initial=false){return emergency||initial?fortressMusterX(team):fieldworkMusterX(team)}
