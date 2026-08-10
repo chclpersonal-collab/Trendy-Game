@@ -3,7 +3,7 @@ name: Playwright Vercel Playtest
 on:
   push:
     branches:
-      - 'update/**'
+      - 'agent/current'
     paths:
       - 'game.html'
       - 'styles.css'

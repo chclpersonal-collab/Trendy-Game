@@ -37,8 +37,15 @@ test('deployed preview boots and preserves core invariants', async ({ page }, te
   expect(result.validation.companyMax).toBeLessThanOrEqual(14);
   expect(result.validation.maxPerCommander).toBe(14);
   expect(result.validation.roadmapCount).toBe(15);
+  expect(result.state.version).toBe('2.20');
   expect(result.state.phase).toBe(2);
-  expect(result.state.economy.patch).toBe(13);
+  expect(result.state.economy.patch).toBe(14);
+  expect(result.state.economy.pricingHold).toBe(true);
+  expect(result.state.economy.emergencyFPrice).toBe(15);
+  expect(result.state.economy.emergencyFortressMaxBuy).toBe(1);
+  expect(result.state.economy.recoveryThreshold).toBe(7);
+  expect(result.state.economy.paidMusterX).toEqual([770, 2230]);
+  expect(result.state.economy.fortressReserveX).toEqual([330, 2670]);
   expect(result.state.command.maxMusketeers).toBe(14);
   expect(result.state.command.musket.baseReload).toBe(30);
   expect(result.state.command.siegeEscalation.breachPressRange).toBe(92);
@@ -56,7 +63,7 @@ test('deployed preview boots and preserves core invariants', async ({ page }, te
 test('300-second deterministic browser self-play remains valid', async ({ page }, testInfo) => {
   await openGame(page);
   const result = await page.evaluate(() => {
-    window.GameTest.setSeed(21918);
+    window.GameTest.setSeed(22018);
     const state = window.GameTest.advance(300);
     return { state, validation: window.GameTest.validate() };
   });
@@ -73,7 +80,7 @@ test('300-second deterministic browser self-play remains valid', async ({ page }
   await testInfo.attach('state-300s.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
 });
 
-test('natural siege sample produces fortress pressure', async ({ page }, testInfo) => {
+test('natural siege sample still produces fortress pressure', async ({ page }, testInfo) => {
   test.setTimeout(90000);
   await openGame(page);
   const result = await page.evaluate(() => {
@@ -134,6 +141,7 @@ test('natural siege sample produces fortress pressure', async ({ page }, testInf
         lossReasons,
         commandIntegrity: state.commandIntegrity,
         uncommanded: state.uncommanded,
+        emergencyPurchases: state.emergencyPurchases,
         fortresses: state.fortresses
       });
     }
@@ -146,38 +154,55 @@ test('natural siege sample produces fortress pressure', async ({ page }, testInf
   expect(totalHits).toBeGreaterThan(0);
 });
 
-test('contested fieldwork blocks paid musketeer muster and reopens when relieved', async ({ page }, testInfo) => {
+test('fieldwork muster is physical and fortress reserve prevents a siege hard lock', async ({ page }, testInfo) => {
   await openGame(page);
   const result = await page.evaluate(() => {
-    window.GameTest.setSeed(21921);
+    window.GameTest.setSeed(22021);
     window.GameTest.forceBreach(0, 0, true);
-    const g = window.__battleSim.test.generals()[1];
-    const blockedBefore = window.__battleSim.test.fieldworkMusterBlocked(1);
-    const before = { money: g.money, purchases: g.purchases, musketeers: window.GameTest.state().musketeers[1] };
-    const blockedBuy = window.__battleSim.test.buyMusketeer(1, 'F');
-    const afterBlocked = { money: g.money, purchases: g.purchases, musketeers: window.GameTest.state().musketeers[1] };
+    const api = window.__battleSim.test;
+    const g = api.generals()[1];
+    const defenders = api.actors().filter(a => a.alive && a.team === 1 && !a.isCommander);
+    for (const defender of defenders.slice(0, 8)) api.killActor(defender, null, 'test');
+
+    const blockedBefore = api.fieldworkMusterBlocked(1);
+    const before = { money: g.money, purchases: g.purchases, emergencyPurchases: g.emergencyPurchases, musketeers: window.GameTest.state().musketeers[1] };
+    const blockedBuy = api.buyMusketeer(1, 'F');
+    const afterBlocked = { money: g.money, purchases: g.purchases, emergencyPurchases: g.emergencyPurchases, musketeers: window.GameTest.state().musketeers[1] };
+    const emergencyBuy = api.buyMusketeer(1, 'F', false, true);
+    const afterEmergency = { money: g.money, purchases: g.purchases, emergencyPurchases: g.emergencyPurchases, musketeers: window.GameTest.state().musketeers[1], x: emergencyBuy?.x ?? null };
+    const secondEmergency = api.buyMusketeer(1, 'F', false, true);
+
     window.GameTest.forceStance(0, 'CONTEST');
-    const blockedAfterRelief = window.__battleSim.test.fieldworkMusterBlocked(1);
-    const reopenedBuy = window.__battleSim.test.buyMusketeer(1, 'F');
-    const afterRelief = { money: g.money, purchases: g.purchases, musketeers: window.GameTest.state().musketeers[1] };
-    return { blockedBefore, blockedBuy: blockedBuy === null, before, afterBlocked, blockedAfterRelief, reopenedBuy: Boolean(reopenedBuy), afterRelief, validation: window.GameTest.validate() };
+    const blockedAfterRelief = api.fieldworkMusterBlocked(1);
+    const reopenedBuy = api.buyMusketeer(1, 'F');
+    const afterRelief = { money: g.money, purchases: g.purchases, emergencyPurchases: g.emergencyPurchases, musketeers: window.GameTest.state().musketeers[1], x: reopenedBuy?.x ?? null };
+    return { blockedBefore, blockedBuy: blockedBuy === null, before, afterBlocked, emergencyBuy: Boolean(emergencyBuy), afterEmergency, secondEmergency: secondEmergency === null, blockedAfterRelief, reopenedBuy: Boolean(reopenedBuy), afterRelief, validation: window.GameTest.validate() };
   });
   await testInfo.attach('fieldwork-muster.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
   expect(result.validation.ok).toBe(true);
   expect(result.blockedBefore).toBe(true);
   expect(result.blockedBuy).toBe(true);
   expect(result.afterBlocked).toEqual(result.before);
+  expect(result.emergencyBuy).toBe(true);
+  expect(result.afterEmergency.purchases).toBe(result.before.purchases + 1);
+  expect(result.afterEmergency.emergencyPurchases).toBe(result.before.emergencyPurchases + 1);
+  expect(result.afterEmergency.musketeers).toBe(result.before.musketeers + 1);
+  expect(result.afterEmergency.money).toBeCloseTo(result.before.money - 15, 6);
+  expect(result.afterEmergency.x).toBe(2670);
+  expect(result.secondEmergency).toBe(true);
   expect(result.blockedAfterRelief).toBe(false);
   expect(result.reopenedBuy).toBe(true);
-  expect(result.afterRelief.purchases).toBe(result.before.purchases + 1);
-  expect(result.afterRelief.musketeers).toBe(result.before.musketeers + 1);
-  expect(result.afterRelief.money).toBeCloseTo(result.before.money - 10, 6);
+  expect(result.afterRelief.purchases).toBe(result.before.purchases + 2);
+  expect(result.afterRelief.emergencyPurchases).toBe(result.before.emergencyPurchases + 1);
+  expect(result.afterRelief.musketeers).toBe(result.before.musketeers + 2);
+  expect(result.afterRelief.money).toBeCloseTo(result.before.money - 25, 6);
+  expect(result.afterRelief.x).toBe(2230);
 });
 
 test('controlled BREACH converts into real fortress damage', async ({ page }, testInfo) => {
   await openGame(page);
   const result = await page.evaluate(() => {
-    window.GameTest.setSeed(21919);
+    window.GameTest.setSeed(22019);
     window.GameTest.forceBreach(0, 0, true);
     const before = window.GameTest.snapshot();
     const after = window.GameTest.advance(1);
@@ -206,7 +231,7 @@ test('player-facing controls work on the deployed build', async ({ page }) => {
   await speedButton.click();
   await expect(speedButton).toHaveText('Speed 1×');
   await page.evaluate(() => {
-    window.GameTest.setSeed(21920);
+    window.GameTest.setSeed(22020);
     window.GameTest.advance(20);
     document.getElementById('fieldWrap').scrollLeft = 0;
   });
