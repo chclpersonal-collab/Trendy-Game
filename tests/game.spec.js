@@ -42,6 +42,11 @@ test('deployed preview boots and preserves core invariants', async ({ page }, te
   expect(result.state.command.maxMusketeers).toBe(14);
   expect(result.state.command.musket.baseReload).toBe(30);
   expect(result.state.command.siegeEscalation.breachPressRange).toBe(92);
+  expect(result.state.command.siegeEscalation.breachReloadPressRange).toBe(58);
+  expect(result.state.command.siegeEscalation.breachFortDangerRange).toBe(70);
+  expect(result.state.command.siegeEscalation.breachProgressStep).toBe(12);
+  expect(result.state.command.siegeEscalation.breachProgressGrace).toBe(60);
+  expect(result.state.command.siegeEscalation.fieldworkMusterBlockRange).toBe(205);
   expect(result.state.command.lightsaberForm.forms).toEqual(CANONICAL_FORMS);
   expect(await page.title()).toContain(result.state.version);
   expect(diagnostics.pageErrors).toEqual([]);
@@ -139,6 +144,34 @@ test('natural siege sample produces fortress pressure', async ({ page }, testInf
   expect(result.every(x => x.validation.ok)).toBe(true);
   const totalHits = result.reduce((sum, x) => sum + x.fortressHits[0] + x.fortressHits[1], 0);
   expect(totalHits).toBeGreaterThan(0);
+});
+
+test('contested fieldwork blocks paid musketeer muster and reopens when relieved', async ({ page }, testInfo) => {
+  await openGame(page);
+  const result = await page.evaluate(() => {
+    window.GameTest.setSeed(21921);
+    window.GameTest.forceBreach(0, 0, true);
+    const g = window.__battleSim.test.generals()[1];
+    const blockedBefore = window.__battleSim.test.fieldworkMusterBlocked(1);
+    const before = { money: g.money, purchases: g.purchases, musketeers: window.GameTest.state().musketeers[1] };
+    const blockedBuy = window.__battleSim.test.buyMusketeer(1, 'F');
+    const afterBlocked = { money: g.money, purchases: g.purchases, musketeers: window.GameTest.state().musketeers[1] };
+    window.GameTest.forceStance(0, 'CONTEST');
+    const blockedAfterRelief = window.__battleSim.test.fieldworkMusterBlocked(1);
+    const reopenedBuy = window.__battleSim.test.buyMusketeer(1, 'F');
+    const afterRelief = { money: g.money, purchases: g.purchases, musketeers: window.GameTest.state().musketeers[1] };
+    return { blockedBefore, blockedBuy: blockedBuy === null, before, afterBlocked, blockedAfterRelief, reopenedBuy: Boolean(reopenedBuy), afterRelief, validation: window.GameTest.validate() };
+  });
+  await testInfo.attach('fieldwork-muster.json', { body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json' });
+  expect(result.validation.ok).toBe(true);
+  expect(result.blockedBefore).toBe(true);
+  expect(result.blockedBuy).toBe(true);
+  expect(result.afterBlocked).toEqual(result.before);
+  expect(result.blockedAfterRelief).toBe(false);
+  expect(result.reopenedBuy).toBe(true);
+  expect(result.afterRelief.purchases).toBe(result.before.purchases + 1);
+  expect(result.afterRelief.musketeers).toBe(result.before.musketeers + 1);
+  expect(result.afterRelief.money).toBeCloseTo(result.before.money - 10, 6);
 });
 
 test('controlled BREACH converts into real fortress damage', async ({ page }, testInfo) => {

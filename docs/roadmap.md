@@ -20,13 +20,14 @@
 
 - Validate the 30-second musket reload / counter-charge / BRACE battle rhythm.
 - Continue reducing pathological long-lived local-command stragglers without making command range meaningless.
-- Verify whether v2.19's BREACH reload-pressure fix creates natural siege-to-fortress conversion without making fortresses trivial.
-- Use persistent BREACH distance, siege-time, command-integrity and fortress-hit telemetry to distinguish travel stalls from combat stalls.
+- Treat v2.19 as the first candidate with deployed evidence that a natural BREACH can reach and damage a fortress; do not interpret that single breakthrough as final balance proof.
+- Human-playtest the fieldwork muster block on the Vercel preview: it should make deep territorial pressure matter while still allowing the defender to reopen recruitment by physically pushing the BREACH back.
+- Continue watching BREACH loss reasons, minimum fortress distance, command integrity, uncommanded counts, purchase volume and fortress damage so the new logistics rule does not create runaway snowballing.
 - Use deployed Playwright/Vercel evidence as the browser regression gate before calling a candidate verified.
-- Keep the GitHub/Vercel/Playwright loop efficient: narrow source reads, one batched functional push per candidate, maximum 60-second deployment polling, cancel superseded CI, and do not run browser CI for documentation-only changes.
+- Keep the GitHub/Vercel/Playwright loop efficient: narrow source reads, batched functional pushes, maximum 60-second deployment polling, cancel superseded CI, and do not run browser CI for documentation-only changes.
 - Continue experimental pricing calibration through patches 14–15.
 - Keep only Commander Form I — Shii-Cho active until the current combat layer is stable.
 
 ## Next planned update
 
-Phase 2 v2.20 / Experimental Pricing Patch 14/15: use the v2.19 natural-siege sample and human Vercel playtest to decide whether the 92-unit BREACH pressure line should be held, tuned, or reverted. Continue command/cohesion stabilization. Do not advance to D Class until Phase 2 is judged stable.
+Phase 2 v2.20 / Experimental Pricing Patch 14/15: use the v2.19 deployed natural-siege evidence plus human Vercel playtesting to evaluate fieldwork-muster fairness, fortress-pressure frequency, and remaining command/cohesion pathologies. Prefer tuning or reverting the smallest responsible rule rather than stacking unrelated buffs. Do not advance to D Class until Phase 2 is judged stable.
