@@ -29,7 +29,6 @@ window.__battleSim.state=()=>{
  state.patchVersion='3.2.1';
  state.rework='rank-ecology-balance';
  state.classProgression.rankEcology={model:'F majority / E regular / D rare-visible',separateETarget:true,eTargets:{...V321_E_TARGETS},dTargets:{...V321_D_TARGETS},dMinimumArmy:V321_D_MIN_ARMY,eSevereDeficitRatio:V321_E_SEVERE_DEFICIT,eMaxUpkeepPressure:V321_E_MAX_PRESSURE,dMaxUpkeepPressure:V321_D_MAX_PRESSURE,promotionThresholdsUnchanged:true};
- state.classProgression.dClass.targetShareRange:[.03,.06];
  state.classProgression.dClass.targetShareRange=[.03,.06];
  state.classProgression.dClass.aiPurchaseMode='rare-visible mature-army procurement across stances; SIEGE retains the highest target';
  return state
