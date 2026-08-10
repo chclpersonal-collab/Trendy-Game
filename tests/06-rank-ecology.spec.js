@@ -33,6 +33,26 @@ test('rank procurement treats E and D as separate ecology layers and allows matu
   expect(r.state.classProgression.rankEcology.promotionThresholdsUnchanged).toBe(true);
 });
 
+test('E and D obey SIEGE/BREACH discipline but retain autonomous bayonet behavior in ordinary combat',async({page})=>{
+  await openGame(page);
+  const r=await page.evaluate(()=>{
+    GameTest.setSeed(34203);const api=__battleSim.test,g=api.generals()[0],eg=api.generals()[1];g.money=1000;eg.money=1000;
+    const e=api.buyMusketeer(0,'E'),enemy=api.buyMusketeer(1,'F'),c=api.companies()[0][0],cmd=api.actors().find(a=>a.alive&&a.team===0&&a.isCommander&&a.company===c.id);
+    e.x=1400;e.y=300;enemy.x=1510;enemy.y=300;cmd.x=1380;cmd.y=300;e.reload=10;e.chargeCooldown=0;e.chargeTimer=0;c.command='BREACH';c.targetX=2700;
+    const disciplined=api.v321EliteSiegeDiscipline(e);api.updateMusketeer(e,.05);const breachCharge=e.chargeTimer;
+    e.chargeTimer=0;e.chargeTarget=0;e.chargeCooldown=0;e.reload=10;enemy.x=e.x+110;enemy.y=e.y;c.command='ADVANCE';
+    const ordinaryDisciplined=api.v321EliteSiegeDiscipline(e);api.updateMusketeer(e,.05);const ordinaryCharge=e.chargeTimer;
+    return{disciplined,breachCharge,ordinaryDisciplined,ordinaryCharge,state:GameTest.state(),validation:GameTest.validate()};
+  });
+  expect(r.validation.ok).toBe(true);
+  expect(r.disciplined).toBe(true);
+  expect(r.breachCharge).toBe(0);
+  expect(r.ordinaryDisciplined).toBe(false);
+  expect(r.ordinaryCharge).toBeGreaterThan(0);
+  expect(r.state.classProgression.eliteSiegeDiscipline.freshAutonomousChargeDuringSiege).toBe(false);
+  expect(r.state.classProgression.eliteSiegeDiscipline.ordinaryAutonomousBayonetPreserved).toBe(true);
+});
+
 test('600-second rank ecology sample keeps F majority while E is regular and D is actually present',async({page},testInfo)=>{
   test.setTimeout(60000);await openGame(page);
   const r=await page.evaluate(()=>{
