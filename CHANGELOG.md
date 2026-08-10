@@ -1,5 +1,55 @@
 # Changelog
 
+## Phase 2 v2.21 — Final Pricing Calibration / Command-Recovery Audit
+
+### Patch — Experimental Pricing 15/15 / FINAL SCHEDULED CALIBRATION
+- Advanced the scheduled experimental-pricing counter from 14/15 to **15/15**.
+- Held F at $10, E at $32, base passive income at $10/s, F bounty at $5, E bounty at $16, and upkeep at 1.60% of living army value/s.
+- No fortress, musket, E-charge, command-radius, BREACH-pressure, or company-cap rebalance was stacked onto the final pricing sample.
+- Patch 15 completes the planned calibration sequence but does not make the values permanently immutable; later evidence may still justify a change.
+
+### Audit — Final Economy Calibration
+- Added four deterministic 600-second deployed-browser economy samples: seeds 22101–22104.
+- The highest observed treasury across all eight sampled sides was about **$610.62**; other sampled maxima remained roughly in the $430–$528 range.
+- Across the four samples the General AIs made **287 direct E-Class purchases** and soldiers earned **21 F→E promotions**, so the bounded treasuries were not produced by suppressing rank progression.
+- All four economy samples preserved finite state, nonnegative treasury, valid fortress HP, the 14-musketeer company cap, and the 15-phase roadmap.
+- Final sampled net-income rates remained positive but compressed under army upkeep, ranging from about $0.19/s to $4.46/s in the recorded endpoints rather than returning to the old pre-upkeep runaway behavior.
+
+### Rework Audit — Separated-Commander Soldier Fallback REJECTED
+- Tested a proposed cohesion change where a soldier could use a living but company-separated commander as a physical fallback regroup target.
+- The controlled regression worked mechanically, but the unchanged three-seed × 600-second natural-siege gate fell to **0 fortress hits**.
+- The failed candidate produced heavy rejoin churn: peak rejoining counts reached into the high 30s/low 40s while companies chased commanders that were already returning toward the company.
+- Seed 21902 lost the established natural breakthrough and never approached the ~214-unit fortress distance seen in v2.20.
+- The fallback was removed instead of weakening the siege acceptance gate or buffing siege combat to compensate.
+
+### Command-Recovery Audit / Accepted Baseline
+- Retained the existing simpler behavior: a separated living commander physically returns toward its company, and soldiers use normal local rejoin behavior once company command is functioning again.
+- Kept company-integrity radius at 180, individual soldier command radius at 350, rejoin completion at 285, and commander joining speed at 28 units/s.
+- Added a deployed regression proving a commander separated by 400 units physically closes the gap by about 28 units in one simulated second while still remaining out of command; precise orders are therefore not restored early and no teleport regroup is introduced.
+
+### Test Infrastructure / Audit Hardening
+- Expanded the exact protected Vercel suite from 6 to **8 tests**.
+- Added the four-seed final economy-calibration gate.
+- Retained the unchanged three-seed natural-siege requirement that at least one natural fortress hit occur across seeds 21901–21903.
+- Added peak-uncommanded telemetry to the natural sample instead of claiming cohesion fixed from a single controlled scenario.
+- Retained deployed checks for boot/runtime invariants, deterministic 300-second self-play, fieldwork recruitment blocking/reopening, controlled BREACH damage, and Pause/Speed/Front controls.
+
+### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
+- Verified gameplay commit: `ea1803f262263edf616da3348f152242bfa3c08b`.
+- Protected Vercel preview: `trendy-game-kvjdseeow-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run `31350330442` passed **8/8** Playwright tests in **55.7 seconds** of browser-test execution.
+- Natural seed 21901: 0 fortress hits; final uncommanded 26 / 9.
+- Natural seed 21902: Right produced **4 fortress hits**, reached about **214.022** minimum fortress distance, and reduced the upgraded Left fortress from 6500 HP to about **6466.63**.
+- Natural seed 21903: 0 fortress hits; final uncommanded 42 / 3.
+- Natural sample peak uncommanded counts reached as high as **56**, so high temporary loss of local command remains an open cohesion finding.
+- The restored natural-siege telemetry matches the accepted v2.20 deterministic pattern, showing that Patch 15 preserved the proven breakthrough after the failed cohesion experiment was removed.
+
+### Playtesting / Limitations
+- Automated deployed playtesting is **PROVEN for the eight tested scenarios**.
+- Overall Phase 2 balance/stability remains **PARTIALLY PROVEN**, because a human Vercel playtest has not yet been completed.
+- D Class remains blocked until the Phase 2 stability verdict.
+- Raw pre-JavaScript `game.html` still carries some legacy v2.19 / Pricing 13 copy; runtime JavaScript presents v2.21 correctly. Static-copy cleanup is tracked as a nonfunctional simplification rather than mixed into the verified gameplay commit.
+
 ## Phase 2 v2.20 — Siege Baseline Preservation / Development Consolidation
 
 ### Experimental Pricing Patch 14/15 — CONTROLLED HOLD
