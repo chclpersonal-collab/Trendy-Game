@@ -2,85 +2,94 @@
 
 ## Phase 3 v3.0 — D-Class Foundation / Assault Drill
 
+### Major Rework — Zero-Start Armies / 150-Soldier Ceiling
+- Every new war now begins with **0 musketeers per army** instead of 14 free F musketeers.
+- Each General retains its starting treasury and must build the army through actual purchases.
+- Raised the hard musketeer ceiling from **56 to 150 per army**, allowing up to **150 vs 150** musketeers.
+- Commanders are separate from the 150-musketeer count.
+- The existing **14 musketeers per commander/company** cap remains unchanged. A full 150-soldier army therefore uses 11 companies: ten full 14-soldier companies and one 10-soldier company.
+- 150 is a hard ceiling, not an AI target; General force sizing still depends on enemy strength, strategy, treasury, reserve, and upkeep.
+
+### Bug Fix — True Army-Wide Cap Enforcement
+- Fixed `companyWithRoom()` checking for spare company capacity before checking the army-wide cap.
+- Without the fix, a 151st musketeer could have entered a partially filled last company even when `MAX_MUSKETEERS` was 150.
+- The army-wide count is now checked first.
+- `GameTest.validate()` now explicitly reports and rejects `overArmyCapacity` and exposes `maxPerArmy: 150`.
+- Added a deployed regression that buys 151 musketeers with effectively unlimited treasury and proves exactly 150 succeed, the 151st fails, all companies remain ≤14, and the final army has 11 commanders/companies.
+
+### Automated Verification — Zero Start / 150 Cap
+- Verified deployed HEAD: `60ade9918a183e8887f51fd394149eb0a254901f`.
+- Protected Vercel preview: `trendy-game-hi5vunley-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run **`31353827658` passed 13/13 Playwright tests** in about **4.0 minutes**.
+- Fresh reset state is explicitly verified as **0 / 0 musketeers** with **1 / 1 initial commanders** before autonomous simulation advances.
+- 300-second autonomous zero-start self-play proves both Generals can build functioning armies from nothing while state remains finite and bounded.
+
+### Zero-Start Economy Audit — 4 × 600 Seconds
+- Seeds 31101–31104 all preserved finite state, nonnegative treasury, valid fortress HP, company cap, army cap, unlocked ranks, and the 15-phase roadmap.
+- Highest sampled treasury was about **$554.60**.
+- Largest sampled living army in this four-seed set was **64** musketeers.
+- Maximum sampled D share was about **2.86%**.
+- Direct D purchases remained sparse and earned E→D promotion still occurred.
+- The General therefore does not automatically fill the new 150 ceiling; normal economic force sizing remains active.
+
+### Zero-Start Natural Siege Audit — 9 × 900 Seconds
+- Seeds 31201–31209 all preserved technical invariants and stayed below 150 musketeers per army.
+- **Seed 31202:** Left produced **18 natural fortress hits**, reached about **213.951** minimum BREACH distance, and reduced the Right E fortress from 6500 HP to about **6359.19**; peak armies were **77 / 78**.
+- **Seed 31203:** Left produced **53 natural fortress hits**, reached about **200.040** minimum BREACH distance, and reduced the Right E fortress from 6500 HP to about **6076.89**; peak armies were **54 / 54**.
+- The other seven seeds produced zero fortress hits.
+- Removing the free starting army therefore does not eliminate natural siege conversion.
+
+### Test Fix — Initial-State Timing
+- First zero-start run `31353568973` passed **12/13** tests.
+- The only failure expected 0 / 0 immediately after page load, but autonomous AI had already advanced for a fraction of a second and bought 3 F musketeers per side before the test clicked Pause.
+- This was a test-timing error, not a game-rule failure: the hard-cap, self-play, economy, natural-siege, commander, fieldwork, BREACH, and controls tests all passed in that same run.
+- Corrected the test to pause and explicitly reset before inspecting the default state. No gameplay workaround was added.
+
 ### Major Update — D Class unlocked
-- Phase 2 / E Class is recorded as stable after its exact deployed v2.21 gate passed 8/8 and the user supplied no comments under the project acceptance convention.
-- D Class is now the Phase 3 current rank; C Class remains locked as Phase 4.
-- D may be bought directly for **$80** or earned by an E soldier at **10 total XP**, preserving the established dual-path rank policy.
+- Phase 2 / E Class is stable.
+- D Class is the Phase 3 current rank; C Class remains locked as Phase 4.
+- D may be bought directly for **$80** or earned by an E soldier at **10 total XP**.
 - The existing 50% defeated-rank bounty rule makes a D kill worth **$40**.
-- Direct D starts at the 10-XP D floor; every earned XP continues to restore 20 HP up to full health.
+- Direct D starts at the 10-XP D floor; every earned XP restores 20 HP up to full health.
 
 ### Rework — D identity changed from passive drill to Assault Drill
-- The initial universal passive D fire advantage was rejected after repeated deployed-browser testing showed it suppressed natural fortress conversion broadly, even with D as only a small army minority.
+- The initial universal passive D fire advantage was rejected after repeated deployed-browser testing showed it suppressed natural fortress conversion broadly.
 - Final D inherits E's automatic bayonet charge without extra melee damage.
-- D's special musket drill now activates only under **SIEGE, BREACH, or commander CHARGE** company orders.
+- D's special musket drill activates only under **SIEGE, BREACH, or commander CHARGE** company orders.
 - During the drill, D gains **+3.5 percentage points musket aim**, a **2-second reload drill bonus**, and a **25-second reload floor** after veteran effects.
-- Outside assault orders, D uses an **E-equivalent veteran combat baseline**, preventing a universal defensive-line buff.
-- D strategic combat weight is E-equivalent in ordinary fighting and rises modestly only while the General is in SIEGE.
+- Outside assault orders, D uses an **E-equivalent veteran combat baseline**.
 
 ### AI / Procurement Rework
-- General AI may buy F, E and D, but D is not a routine replacement tier.
 - Routine D target outside SIEGE is **0%**; SIEGE target is up to about **8%**.
 - D procurement is allowed only as a funded siege top-off: army within two soldiers of desired strength, upkeep pressure below 78%, and treasury sufficient for the normal reserve + $80 D price + a $120 surplus buffer.
 - Recovery/rebuild procurement remains F/E-first.
-- A permanent regression proves the General will not choose D in CONTEST but can choose it under a properly funded SIEGE.
 
-### Bug Fix — preserve Phase-2 F/E economy
-- The first v3.0 candidate normalized the existing price-quality term across the raw F→D price span. That silently reduced E's established quality-income contribution and failed the natural-siege gate.
-- Rejected that formula.
-- F retains price-quality contribution 0 and E retains contribution 1 exactly as in Phase 2; D contributes a bounded 1.5.
-- D's full **$80** still counts toward army-value upkeep, avoiding a passive-income windfall.
-- Added a regression proving a 14-F + 1-E army still receives rank bonus `1/15` and price-quality bonus `1/15`.
+### Bug Fix — Preserve Phase-2 F/E Economy
+- Rejected the first v3.0 formula that normalized price-quality income across the raw F→D price span because it reduced E's established contribution and broke siege behavior.
+- F retains price-quality contribution 0 and E retains contribution 1; D contributes a bounded 1.5.
+- D's full **$80** still counts toward army-value upkeep.
+- Regression coverage proves a 14-F + 1-E army still receives rank bonus `1/15` and price-quality bonus `1/15`.
 
-### Test Fix
-- Corrected the direct-D purchase assertion to measure treasury immediately after the purchase.
-- The original test measured after the promoted soldier also earned a $5 F kill bounty and therefore falsely reported a $75 cost even though the purchase had correctly deducted $80.
-
-### Minor / UI
+### Minor / UI / Code
 - Added D living-count and E→D promotion telemetry.
-- Consolidated the purchase display into a compact E/D rank-purchase line.
 - D soldiers have a distinct second bayonet mark and bold D veteran label.
-- Static `game.html` now identifies Phase 3 v3.0 directly instead of carrying stale v2.19 metadata.
-- Final player-facing rules explicitly describe D as an **assault-dependent** drill rather than a passive universal buff.
+- Static `game.html` identifies Phase 3 v3.0 directly.
+- Centralized rank inheritance through `rankScoreOf()` / `rankAtLeast()`.
+- Added `dAssaultDrillActive()` and `veteranCombatXP()` for D's assault-only behavior.
+- Runtime validation rejects ranks outside currently unlocked F/E/D.
 
-### Code / Complexity
-- Removed the v2.x runtime release-state/version-copy wrapper so static HTML, runtime state, and the test API agree directly.
-- Centralized rank inheritance through `rankScoreOf()` / `rankAtLeast()` instead of duplicating E-or-D conditions.
-- Added `dAssaultDrillActive()` and `veteranCombatXP()` so D's assault-only behavior is expressed in one place for aim, reload, and movement-veteran scaling.
-- Test validation rejects any living non-commander rank outside the currently unlocked F/E/D set.
-- Runtime telemetry now records D drill orders, E-equivalent non-assault baseline, siege-only funded procurement, and the 0–8% target range.
-
-### Rejected Candidate Evidence
-- **Run `31351540126`: 8/10 passed.** The first v3.0 candidate had a test-accounting error and a real siege regression; natural fortress hits fell to zero.
-- **Run `31351758849`: 10/11 passed.** F/E economy compatibility was restored and D was limited to surplus top-off, but the old three-seed siege sample still produced zero fortress hits.
-- A subsequent broader nine-seed × 600-second audit also produced zero fortress hits with the universal passive D advantage, proving the problem was structural rather than merely deterministic seed drift.
-- The passive design was therefore removed instead of weakening the siege gate or buffing BREACH globally.
-
-### Final Phase-3 Automated Verification — AUTOMATED VERIFIED CANDIDATE
-- Final verified deployed HEAD: `cfe77f5ab77931f7fe26c7a71323a32a132be33b`.
-- Protected Vercel preview: `trendy-game-nat3zy2hx-chclpersonal-9731s-projects.vercel.app`.
-- GitHub Actions run **`31352532990` passed 12/12 Playwright tests** in about **2.1 minutes** of browser-test execution.
-- Exact deployed tests covered Phase-3 invariants, direct/earned D progression, Phase-2 F/E economy compatibility, assault-drill activation, siege-only D procurement, deterministic 300-second self-play, four-seed D/economy calibration, broad natural siege, commander recovery, fieldwork block/reopen, controlled BREACH damage, and UI controls.
-
-### D / Economy Calibration — 4 × 600 seconds
-- Seeds 30101–30104 all preserved finite state, nonnegative treasury, valid fortress HP, company cap, unlocked ranks, and the 15-phase roadmap.
-- Maximum sampled treasury was about **$502.27**.
-- Maximum sampled D share was about **4.65%**, well below the 30% acceptance ceiling.
-- Direct D purchases remained sparse and battlefield E→D promotions still occurred naturally.
-
-### Natural Siege — Phase-3 Acceptance
-- The old Phase-2 comparison seeds 21901–21903 no longer reproduce the exact v2.21 breakthrough under D-era rules; they remain recorded as comparison telemetry.
-- Phase 3 uses a broader nine-seed × 600-second acceptance sample, seeds 30201–30209.
-- All nine runs preserved technical invariants.
-- **Seed 30209 produced 2 natural Left fortress hits**, reached about **213.900** minimum BREACH-to-fortress distance, and reduced the Right E fortress from **6500 HP to about 6482.35 HP**.
-- The other eight Phase-3 acceptance seeds produced zero fortress hits, demonstrating that natural fortress conversion remains possible without becoming routine.
-- Peak uncommanded populations still sometimes reach the 50s; this remains an open cohesion observation rather than a claim of resolution.
+### Earlier v3.0 Candidate Evidence
+- Run `31351540126`: **8/10 passed**; exposed a test-accounting mistake and a real siege/economy regression.
+- Run `31351758849`: **10/11 passed**; F/E economy was restored, but universal passive D still suppressed fortress conversion.
+- Broader nine-seed testing confirmed the passive D design was structurally harmful, so it was removed instead of weakening siege acceptance.
+- The Assault Drill redesign later passed the full deployed gate and is retained.
 
 ### Acceptance Convention / Roadmap
 - No separate human-playtest gate is required.
 - Automated technical failures still block advancement.
-- After this technically verified v3.0 update is delivered, **no user comments means accepted/good**.
+- After a technically verified update is delivered, **no user comments means accepted/good**.
 - C Class remains locked until D is accepted/stabilized.
-- **Form II — Makashi** is the leading v3.1 candidate and remains locked during v3.0 so the initial D sample stays isolated.
+- **Form II — Makashi** remains the leading v3.1 candidate.
 
 ## Phase 2 v2.21 — Final Pricing Calibration / Command-Recovery Audit
 
