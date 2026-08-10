@@ -1,0 +1,39 @@
+'use strict';
+// Phase 3 v3.2.1 — rank ecology balance patch.
+// F remains the majority. E is a regularly visible veteran tier; D is rare but no longer siege-only/mythical.
+const V321_E_TARGETS={BUILD:.18,DEFEND:.18,CONTEST:.20,ATTACK:.24,SIEGE:.26};
+const V321_D_TARGETS={BUILD:.03,DEFEND:.03,CONTEST:.04,ATTACK:.05,SIEGE:.06};
+const V321_D_MIN_ARMY=18,V321_E_SEVERE_DEFICIT=.72,V321_E_MAX_PRESSURE=.95,V321_D_MAX_PRESSURE=.90;
+function v321TargetEShare(stance){return V321_E_TARGETS[stance]??.20}
+function v321TargetDShare(stance){return V321_D_TARGETS[stance]??.04}
+function v321ProcurementRank(team,stance,reserve,desired){
+ const g=generals[team],men=activeMusketeers(team),e=men.filter(a=>classOf(a)==='E').length,d=men.filter(a=>classOf(a)==='D').length,n=men.length,eShare=n?e/n:0,dShare=n?d/n:0,eTarget=v321TargetEShare(stance),dTarget=v321TargetDShare(stance),pressure=upkeepPressure(team),canE=g.money-RANK_PRICE.E>=reserve,canD=g.money-RANK_PRICE.D>=reserve;
+ if(n<7||pressure>=1.02)return'F';
+ // Build the veteran layer first if it has collapsed well below its stance target.
+ if(canE&&eShare<eTarget*V321_E_SEVERE_DEFICIT&&pressure<V321_E_MAX_PRESSURE)return'E';
+ // D is now a small mature-army layer in every stance, with its highest share reserved for SIEGE.
+ if(canD&&n>=V321_D_MIN_ARMY&&dShare<dTarget&&pressure<V321_D_MAX_PRESSURE)return'D';
+ if(canE&&eShare<eTarget&&pressure<V321_E_MAX_PRESSURE)return'E';
+ if(pressure>=.78)return'F';
+ // Wealth may modestly top off E, but never beyond a bounded extension of the stance target.
+ if(canE&&g.money>=reserve+RANK_PRICE.E*8&&eShare<Math.min(.30,eTarget+.05))return'E';
+ return'F'
+}
+targetEShare=v321TargetEShare;
+targetDShare=v321TargetDShare;
+procurementRank=v321ProcurementRank;
+
+const v32StateForV321=window.__battleSim.state;
+window.__battleSim.state=()=>{
+ const state=v32StateForV321();
+ state.patchVersion='3.2.1';
+ state.rework='rank-ecology-balance';
+ state.classProgression.rankEcology={model:'F majority / E regular / D rare-visible',separateETarget:true,eTargets:{...V321_E_TARGETS},dTargets:{...V321_D_TARGETS},dMinimumArmy:V321_D_MIN_ARMY,eSevereDeficitRatio:V321_E_SEVERE_DEFICIT,eMaxUpkeepPressure:V321_E_MAX_PRESSURE,dMaxUpkeepPressure:V321_D_MAX_PRESSURE,promotionThresholdsUnchanged:true};
+ state.classProgression.dClass.targetShareRange:[.03,.06];
+ state.classProgression.dClass.targetShareRange=[.03,.06];
+ state.classProgression.dClass.aiPurchaseMode='rare-visible mature-army procurement across stances; SIEGE retains the highest target';
+ return state
+};
+Object.assign(window.__battleSim.test,{procurementRank,targetEShare:v321TargetEShare,targetDShare:v321TargetDShare});
+document.title='Musketeer Battle Simulator — Phase 3 v3.2.1';
+const v321Badge=document.querySelector('.version');if(v321Badge)v321Badge.textContent='v3.2.1';
