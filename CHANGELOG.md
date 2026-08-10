@@ -1,5 +1,49 @@
 # Changelog
 
+## Phase 2 v2.20 — Siege Baseline Preservation / Development Consolidation
+
+### Experimental Pricing Patch 14/15 — CONTROLLED HOLD
+- F remains $10, E remains $32, base passive income remains $10/s, F bounty remains $5, E bounty remains $16, and upkeep remains 1.60% of living army value/s.
+- Fortress HP/damage, musket damage, E charge balance, 30-second base reload, command radii, and BREACH combat constants are unchanged from the verified v2.19 baseline.
+- Patch 14 deliberately isolates process/logistics evaluation rather than changing multiple balance variables at once.
+
+### Rework Audit — Forward Fieldwork Muster REJECTED
+- Tested a proposed change that moved paid musketeers from fortress deployment to forward fieldwork staging.
+- A 55-unit-behind-fieldwork candidate reduced the unchanged three-seed × 600-second natural-siege acceptance sample to zero fortress hits.
+- A second 150-unit-behind-fieldwork candidate also produced zero fortress hits.
+- The 150-unit run recorded zero emergency-reserve purchases in all three seeds, proving the experimental reserve mechanic was not responsible for the siege regression.
+- Seed 21902 degraded from the verified v2.19 minimum fortress distance of about 214.022 to about 677.990 in the 150-unit experiment.
+- The forward-muster concept and its emergency-reserve companion were therefore removed rather than compensating with arbitrary attacker buffs.
+
+### Siege Logistics Clarification
+- Fieldworks are now documented consistently with the actual accepted mechanic: they are paid-recruitment logistics-control nodes, not forward troop spawn points.
+- A viable enemy BREACH within 205 world units of a fieldwork still blocks that side’s paid musketeer recruitment.
+- Pushing the BREACH back immediately reopens recruitment.
+- Paid musketeers continue to deploy physically from the fortress, preserving the v2.19 siege-conversion baseline.
+- Free replacement-command deployment remains unchanged.
+
+### Repository / Workflow Rework
+- Created `agent/current` as the single rolling development branch from v2.20 onward.
+- Closed version-specific PRs #1–#3 as superseded and opened rolling draft PR #4 against `main`.
+- Changed deployed Playwright CI so active development runs only from `agent/current`; legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs no longer drive development CI.
+- Replaced the placeholder README with current state, invariants, branch policy, verification policy, and the full 15-phase roadmap.
+- Updated the Playwright package version to 2.20.0.
+
+### Test / Audit Hardening
+- Kept the natural-siege acceptance gate unchanged while evaluating the failed forward-muster experiment; the gate was not weakened to obtain a green build.
+- Added an explicit deployed regression that proves contested fieldwork logistics block paid recruitment, relief immediately reopens it, treasury/purchase counts stay unchanged while blocked, and the reopened recruit physically deploys from the fortress.
+- Retained exact deployed checks for boot/runtime invariants, deterministic 300-second self-play, three-seed natural siege, controlled BREACH fortress damage, and Pause/Speed/Front controls.
+
+### Final Deployed Verification — VERIFIED CANDIDATE
+- Gameplay commit: `eef38d4322c1f3ffe49ab1bb404c04a079156d98`.
+- Protected Vercel preview: `trendy-game-jr4pziya9-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run `31347815304` passed all **6/6** Playwright tests in **30.8 seconds**.
+- Natural seed 21901: 0 fortress hits; all invariants valid.
+- Natural seed 21902: Right produced **4 fortress hits**, reached about **214.022** minimum fortress distance, and reduced the upgraded Left fortress from 6500 HP to about **6466.63**.
+- Natural seed 21903: 0 fortress hits; all invariants valid.
+- Across the natural sample: state remained finite, fortress HP valid, maximum company size stayed at or below 14, and the roadmap remained 15 phases.
+- This proves v2.20 preserves the v2.19 natural breakthrough after rejecting the failed reinforcement experiment. It does not yet prove Phase 2 balance is finished; human playtesting remains the final stabilization gate.
+
 ## Phase 2 v2.19 — BREACH Logistics / Natural Breakthrough
 
 ### Experimental Pricing Patch 13/15 — HOLD
@@ -19,7 +63,8 @@
 - Retained the 110-second baseline siege commitment. Meaningful new forward progress of at least 12 world units refreshes a 60-second progress grace, preventing a physically advancing spearhead from being cancelled solely because its original timer expired while still allowing a stalled assault to time out.
 
 ### Siege Logistics / Reinforcement Rework
-- Fieldworks now act as physical muster points. When a viable enemy BREACH comes within one musket range (205 world units) of a side’s fieldwork, that side cannot buy new musketeers until the BREACH is pushed back beyond that range.
+- Fieldworks became paid-recruitment logistics-control nodes. When a viable enemy BREACH comes within one musket range (205 world units) of a side’s fieldwork, that side cannot buy new musketeers until the BREACH is pushed back beyond that range.
+- Paid musketeers still deploy from the fortress; v2.20 later made this distinction explicit after forward fieldwork spawning failed deployed siege acceptance.
 - The block is immediate and reversible; there is no extra cooldown after the fieldwork is relieved.
 - Free commander replacement is unaffected, preserving the existing command-recovery system.
 
@@ -48,10 +93,10 @@
 
 ### AI / Siege Rework
 - Increased the committed siege window from 85s to 110s so a physical assault has more time to cross the 3× battlefield under combat pressure.
-- BREACH assignment is now persistent while the designated company remains viable instead of being recomputed every command cycle.
+- BREACH assignment is persistent while the designated company remains viable instead of being recomputed every command cycle.
 - BREACH companies ignore distant rear distractions; screening companies handle those threats. An immediate rear threat within 82 units still forces a turn.
 - A committed siege can survive wider command disruption while the designated BREACH company still has enough troops and a living commander. A separated commander still has to physically restore command before the assault resumes.
-- Added breach-assignment telemetry to the internal state for testing.
+- Added breach-assignment telemetry.
 
 ### Cohesion / Command Tune
 - Increased individual soldier local command radius from 320 to 350 world units.
