@@ -1,0 +1,17 @@
+{
+  "name": "trendy-game-playtests",
+  "version": "3.1.1",
+  "private": true,
+  "description": "Automated deployed-browser playtests for Musketeer Battle Simulator.",
+  "scripts": {
+    "build:static": "node scripts/build-static.mjs",
+    "deploy:cloudflare": "npm run build:static && wrangler deploy",
+    "pretest:e2e": "npm run build:static",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "wrangler": "4.120.0"
+  }
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Musketeer Battle Simulator</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="title">Musketeer Battle Simulator</div>
+    <div class="version">v3.1.1</div>
+  </div>
+  <div class="controls" aria-label="Simulation controls">
+    <button id="pauseBtn">Pause</button>
+    <button id="speedBtn">Speed 1×</button>
+    <button id="frontBtn">Front</button>
+    <button id="restartBtn">Restart</button>
+  </div>
+</header>
+<main>
+  <section id="fieldWrap"><canvas id="field" width="3000" height="620" aria-label="Autonomous musketeer battle"></canvas></section>
+  <aside id="side" aria-label="Battle information">
+    <section class="side-section primary">
+      <div class="section-heading">
+        <h2>Battle</h2>
+        <div class="meta"><span id="warStat">War 1</span><span id="timeStat">0s</span></div>
+      </div>
+      <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
+      <div class="metric" id="armyStat"><span>Troops</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="commandersStat"><span>Commanders</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="moneyStat"><span>Treasury</span><span data-side="left">$0</span><span data-side="right">$0</span></div>
+      <div class="metric" id="fortHpStat"><span>Fortress</span><span data-side="left">0/0</span><span data-side="right">0/0</span></div>
+      <div class="metric" id="killsStat"><span>Kills</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="strategyStat"><span>Strategy</span><span data-side="left">—</span><span data-side="right">—</span></div>
+      <div class="metric" id="budgetStat"><span>Plan</span><span data-side="left">—</span><span data-side="right">—</span></div>
+      <div class="frontline">
+        <div class="frontline-meta"><span id="momentumStat">Even</span><span id="pushStat">50%</span></div>
+        <div class="bar" aria-label="Front line"><i id="pushBar"></i></div>
+        <div class="metric compact" id="positionsStat"><span>Positions</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      </div>
+    </section>
+
+    <section class="side-section">
+      <h2>Forces</h2>
+      <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
+      <div class="metric" id="integrityStat"><span>Command</span><span data-side="left">100%</span><span data-side="right">100%</span></div>
+      <div class="metric" id="uncommandedStat"><span>Uncommanded</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="eclassStat"><span>E class</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="dclassStat"><span>D class</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="reloadingStat"><span>Reloading</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="fortHitsStat"><span>Fort hits</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="winsStat"><span>Wars won</span><span data-side="left">0</span><span data-side="right">0</span></div>
+    </section>
+
+    <details id="details">
+      <summary>Details</summary>
+      <div class="details-body">
+        <section class="detail-group">
+          <h3>Economy</h3>
+          <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
+          <div class="metric" id="incomeStat"><span>Gross / s</span><span data-side="left">$10.0</span><span data-side="right">$10.0</span></div>
+          <div class="metric" id="upkeepStat"><span>Upkeep / s</span><span data-side="left">$0.0</span><span data-side="right">$0.0</span></div>
+          <div class="metric" id="netIncomeStat"><span>Net / s</span><span data-side="left">$10.0</span><span data-side="right">$10.0</span></div>
+          <div class="metric" id="avgRankStat"><span>Avg rank</span><span data-side="left">0.00</span><span data-side="right">0.00</span></div>
+          <div class="metric" id="avgPriceStat"><span>Avg price</span><span data-side="left">$0.0</span><span data-side="right">$0.0</span></div>
+          <div class="metric" id="armyValueStat"><span>Army value</span><span data-side="left">$0</span><span data-side="right">$0</span></div>
+          <div class="metric" id="reserveStat"><span>Reserve</span><span data-side="left">$0</span><span data-side="right">$0</span></div>
+          <div class="metric" id="purchasesStat"><span>Purchases</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="rankPurchasesStat"><span>Rank buys</span><span data-side="left">E 0 · D 0</span><span data-side="right">E 0 · D 0</span></div>
+          <div class="metric" id="bountyStat"><span>Kill income</span><span data-side="left">$0</span><span data-side="right">$0</span></div>
+          <div class="metric" id="upkeepPaidStat"><span>Upkeep paid</span><span data-side="left">$0</span><span data-side="right">$0</span></div>
+          <div class="detail-line"><span>Price calibration</span><span id="pricingStat">15/15</span></div>
+          <div class="detail-line"><span>Run seed</span><span id="seedStat">—</span></div>
+        </section>
+
+        <section class="detail-group">
+          <h3>Command</h3>
+          <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
+          <div class="metric" id="rejoinedStat"><span>Commander rejoins</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="troopRejoinedStat"><span>Troop rejoins</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="rearStat"><span>Rear turns</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric orders" id="ordersStat"><span>Orders</span><span data-side="left">—</span><span data-side="right">—</span></div>
+        </section>
+
+        <section class="detail-group">
+          <h3>Fortresses</h3>
+          <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
+          <div class="metric" id="fortRankStat"><span>Rank</span><span data-side="left">F</span><span data-side="right">F</span></div>
+          <div class="metric" id="fortUpgradeStat"><span>Upgrades</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="siegePushStat"><span>Siege pushes</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="siegeTimeStat"><span>Siege time</span><span data-side="left">0s</span><span data-side="right">0s</span></div>
+        </section>
+
+        <section class="detail-group">
+          <h3>Combat</h3>
+          <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
+          <div class="metric" id="xpStat"><span>Living XP</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="ePromotionsStat"><span>F → E</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="dPromotionsStat"><span>E → D</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="chargesStat"><span>Bayonet charges</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="bayonetKillsStat"><span>Bayonet kills</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="counterChargeStat"><span>Counter-charges</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="counterMeleeKillsStat"><span>Counter kills</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="braceStat"><span>Braces</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="braceKillsStat"><span>Brace kills</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="form1Stat"><span>Shii-Cho sweeps</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="form1GuardsStat"><span>Shii-Cho guards</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="form1DisarmsStat"><span>Shii-Cho disarms</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="form1KillsStat"><span>Shii-Cho kills</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="healingStat"><span>XP healing</span><span data-side="left">0</span><span data-side="right">0</span></div>
+          <div class="metric" id="recordStat"><span>Best veteran</span><span data-side="left">F·0</span><span data-side="right">F·0</span></div>
+        </section>
+      </div>
+    </details>
+    <div id="roadmap" hidden></div>
+  </aside>
+</main>
+<script src="src/01.js"></script><script src="src/02.js"></script><script src="src/03.js"></script><script src="src/04.js"></script><script src="src/05.js"></script><script src="src/06.js"></script><script src="src/07.js"></script><script src="src/08.js"></script><script src="src/09.js"></script><script src="src/10.js"></script>
+</body>
+</html>
