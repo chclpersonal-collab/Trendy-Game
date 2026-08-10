@@ -1,5 +1,82 @@
 # Changelog
 
+## Phase 3 v3.2 — Form II Makashi + Tactical Combat Continuity
+
+### Minor Update — Form II Makashi
+- Unlocked **Form II Makashi** as the second autonomous commander lightsaber form.
+- Makashi is the precise **single-target anti-commander duel** form.
+- It automatically takes an isolated nearby commander duel when local crowd pressure is low.
+- It has stronger single-target commander damage than Form I Shii-Cho.
+- When the local fight becomes crowded, the commander returns to **Form I Shii-Cho**, preserving Shii-Cho's crowd role.
+- Makashi adds no disarm and no projectile deflection.
+
+### Bug Fix — Cross-Lane Tactical Awareness
+- Reproduced the screenshot-reported case before implementation: a horizontally local enemy in another vertical lane could remain unengaged while nearby allies continued in formation.
+- Added bounded local cross-lane interception for ordinarily maneuvering companies.
+- Interception requires the established local soldier-command relationship rather than granting army-wide awareness.
+- Horizontal relevance is capped at **240 units**, total relevance at **310 units**, and vertical movement remains formation-leashed.
+- BREACH, SIEGE, CHARGE, BRACE, VOLLEY, RALLY, REGROUP, and active rearward movement are not overridden by this interception behavior.
+
+### Bug Fix — Withdrawal Combat Continuity
+- Loaded musketeers can now fire while continuing coordinated RALLY/rearward movement.
+- Withdrawing commanders retain danger-close self-defense while staying with their company.
+- E/D musketeers may use contact bayonet self-defense during a threatened withdrawal.
+- F soldiers do **not** receive generic melee capability from this fix.
+- Existing panic/disarm behavior remains separate and unchanged.
+- v3.1.1 movement-facing behavior remains intact, so units still face the direction they are actually moving.
+
+### Audit — Reproduction Before Fix
+- Three focused regressions were added before the gameplay implementation.
+- Untouched v3.1.1 passed the existing suite while all three new behavior regressions failed, establishing the reported cross-lane and withdrawal-combat gaps before the fixes were applied.
+- The screenshot was treated as observed evidence; completion was not claimed from the screenshot alone.
+
+### Efficiency / Complexity Audit — Rejected Optimizations
+- A staggered/stale supplemental threat-cache experiment was rejected after run `31373019704` passed **26/27** but produced **0 fortress hits** across all nine protected natural-siege seeds.
+- A second reuse/cached-target experiment was also rejected after run `31373698210` passed **26/27** but again produced **0 fortress hits** across all nine protected natural-siege seeds.
+- The natural-siege acceptance condition was not weakened.
+- Both optimization designs were removed from the final tree.
+- The final behaviorally correct v3.2 build nevertheless completed the full deployed suite in about **4.0 minutes**, so no performance regression remained in the accepted candidate.
+
+### Test Maintenance
+- Two existing assertions still expected the old v3.1 version/title after v3.2 behavior was already working.
+- Those stale assertions were advanced to v3.2 without weakening the gameplay conditions they protect.
+
+### Final Deployed Verification — AUTOMATED VERIFIED CANDIDATE
+- Exact verified gameplay HEAD: `5947664faf28c063618cff6cc201744d26687b2a`.
+- Protected Vercel preview: `trendy-game-r63j5pfb0-chclpersonal-9731s-projects.vercel.app`.
+- GitHub Actions run **`31374487249` passed 27/27 Playwright tests** in about **4.0 minutes**.
+- Evidence artifact ID: **`9057493425`**.
+- Evidence artifact SHA256: `7f6b2c6fd5f34e1958621ec195b9f55337bc7e0b6941258ad0fc698cd56169b5`.
+- New regressions prove cross-lane engagement, firing while withdrawing, commander withdrawal self-defense, isolated Makashi dueling, and Shii-Cho crowd preference.
+- The previous 22 frontend/v3.1.1 regressions all remained green.
+
+### Economy Audit — 4 × 600 Seconds
+- Seeds 32101–32104 all remained finite and valid.
+- Peak living army: **61**.
+- Peak companies: **11**.
+- Maximum sampled D share: about **3.70%**.
+- Highest sampled treasury: about **$603.76**.
+- The prior v3.1.1 high-treasury observation did not reproduce in this sample, but remains preserved as historical evidence below.
+
+### Natural-Siege Audit — 9 × 900 Seconds
+- Seeds 32201–32209 all remained technically valid and below the 150-soldier / 11-company limits.
+- Only **seed 32206** produced fortress damage.
+- Right produced **2 fortress hits**.
+- Minimum Right BREACH-to-fortress distance was about **284.295**.
+- Left E fortress fell from **6500 to about 6486.24 HP**.
+- The other eight seeds produced zero fortress hits.
+- Natural fortress conversion therefore remains possible without restoring the old v3.1 sustained-siege outlier.
+
+### Roadmap
+- F Class — STABLE.
+- E Class — STABLE.
+- D Class foundation — STABLE.
+- v3.2 Makashi + tactical combat continuity — **AUTOMATED VERIFIED CANDIDATE**.
+- **C Class — NEXT CLASS**; the prior commander-form verification gate is now satisfied.
+- **Form III Soresu — LATER**, isolated from the C-Class implementation.
+- Continue tracking siege-blocked treasury accumulation without weakening fieldwork logistics.
+- Preserve healthy future rank ecology: every unlocked rank remains directly buyable and earnable; avoid exponentially vanishing high-rank presence.
+
 ## Frontend Rework — Battle-First Interface
 
 ### Rework — Remove Generic Generated-UI Chrome
