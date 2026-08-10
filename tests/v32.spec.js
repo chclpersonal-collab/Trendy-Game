@@ -9,7 +9,7 @@ async function openGame(page){
   if((await pause.textContent())?.trim()==='Pause') await pause.click();
 }
 
-test('living commander separation preserves command; commander death causes real command loss',async({page})=>{
+test('living commander separation preserves morale authority; commander death causes real command loss',async({page})=>{
   await openGame(page);
   const r=await page.evaluate(()=>{
     GameTest.setSeed(33001);
@@ -22,7 +22,7 @@ test('living commander separation preserves command; commander death causes real
     cmd.x=1175;cmd.y=300;
     const nearAcc=api.shotAccuracy(soldier,target,120);
     cmd.x=1600;
-    const far={proximity:api.commanderInCommand(c)===null,source:activeCommandSource(c)===cmd,soldierSource:soldierCommander(soldier)===cmd,integrity:commandIntegrity(0),proximityIntegrity:commandProximityIntegrity(0),accuracy:api.shotAccuracy(soldier,target,120)};
+    const far={proximity:api.commanderInCommand(c)===null,source:activeCommandSource(c)===cmd,localSource:soldierCommander(soldier),integrity:commandIntegrity(0),proximityIntegrity:commandProximityIntegrity(0),accuracy:api.shotAccuracy(soldier,target,120)};
     api.killActor(cmd,null,'test');
     soldier.panic=1;soldier.facing=1;const beforeX=soldier.x;api.updateMusketeer(soldier,.5);
     const dead={source:activeCommandSource(c),soldierSource:soldierCommander(soldier),integrity:commandIntegrity(0),accuracy:api.shotAccuracy(soldier,target,Math.abs(target.x-soldier.x)),beforeX,afterX:soldier.x,facing:soldier.facing,validation:GameTest.validate()};
@@ -31,7 +31,7 @@ test('living commander separation preserves command; commander death causes real
   expect(r.dead.validation.ok).toBe(true);
   expect(r.far.proximity).toBe(true);
   expect(r.far.source).toBe(true);
-  expect(r.far.soldierSource).toBe(true);
+  expect(r.far.localSource).toBeNull();
   expect(r.far.integrity).toBe(1);
   expect(r.far.proximityIntegrity).toBe(0);
   expect(r.far.accuracy).toBeCloseTo(r.nearAcc,8);
