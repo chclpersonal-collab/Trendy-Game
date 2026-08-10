@@ -6,128 +6,102 @@ Autonomous two-army musketeer battle simulation developed on the single rolling 
 
 - **Phase 1 / F Class:** STABLE
 - **Phase 2 / E Class:** STABLE
-- **Current:** Phase 3 **v3.1.1 — Command Continuity / Coordinated Withdrawal**
+- **Current gameplay:** Phase 3 **v3.1.1 — Command Continuity / Coordinated Withdrawal**
+- **Current frontend:** battle-first interface rework, verified
 - **Status:** **AUTOMATED VERIFIED CANDIDATE**
-- **Exact verified deployed HEAD:** `d79cbcf36fadd375125b8c5b0ad30f3117fe3dc6`
-- **Protected Playwright run:** `31358519582` — **20/20 passed**
-- **Protected Vercel preview:** `trendy-game-k8cush2ly-chclpersonal-9731s-projects.vercel.app`
-- **Evidence artifact:** `9051555549`
+- **Exact verified deployed HEAD:** `910ce709bd3c2505005e32e8bbdd8db7fdc34896`
+- **Protected Playwright run:** `31365761574` — **22/22 passed**
+- **Protected Vercel preview:** `trendy-game-5l9jf5iof-chclpersonal-9731s-projects.vercel.app`
+- **Evidence artifact:** `9054170465`
 - **Army foundation:** 0 starting musketeers; 150-musketeer hard ceiling per side
 - **Adaptive companies:** commanders choose 2–14 soldiers; 11 companies maximum per army
 - **Commander Form I / Shii-Cho:** STABLE
-- **Form II / Makashi:** next commander-form candidate, still locked during this stabilization patch
+- **Form II / Makashi:** next isolated commander-form candidate
 
-## v3.1.1 — Command Continuity / Coordinated Withdrawal
+## Frontend rework — battle first
 
-### Bug Fix — commander retreat is not commander death
+The game screen was audited specifically for generic AI-generated interface patterns and simplified without changing simulation behavior.
 
-The old command model used the tight **180-unit commander/company proximity radius** as if losing that spacing meant losing command. This could make soldiers appear uncommanded or panicked simply because their living commander had moved away during regrouping or withdrawal.
+### Rework — information hierarchy
 
-v3.1.1 separates two concepts:
+The battlefield is the primary surface. The right-side information rail now keeps only live battle information immediately visible:
 
-- **Morale / command authority:** an original living commander remains the company's authority while alive, even if temporarily outside the 180-unit tight-cohesion radius.
-- **Local tactical control:** detailed soldier orders still require the established **350-unit local soldier-command radius**.
+- troops
+- commanders
+- treasury
+- fortress HP
+- kills
+- current strategy and plan
+- front momentum and held positions
+- command integrity
+- uncommanded troops
+- E/D class counts
+- reloading troops
+- fortress hits
+- wars won
 
-So a living commander moving away does **not** make the company mentally collapse, but this is also **not global radio command**. Soldiers outside local tactical range hold/regroup coherently while the commander closes the distance.
+The old player-facing development material was removed from the game screen:
 
-### Commander death still causes real disruption
+- `Phase 3 Rules`
+- the locked `Commander Forms` list
+- the 15-phase `Roadmap`
+- `General AIs` wording
+- release-note-style header copy
+- paragraph-length helper/explanation text
 
-Commander death remains the actual command-loss event.
+The roadmap still exists in the project/runtime and remains part of validation; it is simply no longer presented as gameplay UI.
 
-- soldiers can become genuinely uncommanded/panicked after the commander dies
-- command integrity falls when the company has no active command source
-- an unjoined replacement commander does not immediately restore authority
-- the replacement must physically reach the company before `joinedCommand` becomes true
-- BREACH viability also remains unavailable until that physical replacement joins
+### Simplification — flat presentation
 
-This preserves the physical replacement invariant while removing false command collapse from ordinary commander movement.
+- Removed the repeated stack of bordered dashboard cards.
+- Replaced slash-separated `Left / Right` telemetry with explicit **Left** and **Right** columns.
+- Replaced the global monospace UI with the system interface font while retaining tabular numerals for live statistics.
+- Removed decorative dashboard chrome: no gradients, glow, pill badges, or rounded-card stacks were introduced.
+- Kept the simulation controls as short action labels: **Pause/Resume, Speed, Front, Restart**.
+- The battlefield is edge-to-edge inside its play area instead of sitting inside another decorative card.
 
-### Bug Fix — commander no longer retreats alone
+### Progressive disclosure
 
-`RALLY` and rearward `DEFEND` are now coordinated company withdrawals.
+Secondary telemetry is preserved under one closed-by-default **Details** disclosure rather than being deleted.
 
-During an active withdrawal:
+It contains economy, command, fortress, combat, calibration, and seed telemetry. This preserves observability while preventing development/debug information from dominating the normal play view.
 
-- the commander uses the company center as the withdrawal reference instead of abandoning the formation
-- commander guard/combat distractions are suppressed while the withdrawal movement is active
-- soldiers and commander move rearward together
-- a living commander continues to provide morale authority during the movement
-- E/D soldiers do not launch a fresh autonomous bayonet charge while under RALLY/REGROUP withdrawal behavior
+### Responsive layout
 
-### Visual / Movement Bug Fix — no retreat moonwalking
+- Desktop: battlefield + compact information rail.
+- Mobile: battlefield first, battle information below it.
+- The mobile browser regression verifies no page-level horizontal overflow; horizontal battlefield movement remains contained inside the battlefield scroller.
 
-Backward-moving soldiers and commanders now turn to face the direction they are actually moving.
+## Phase 3 v3.1.1 — command continuity
 
-This applies to:
+### Commander retreat is not commander death
 
-- RALLY withdrawal
-- rearward DEFEND movement
-- panic retreat
-- disarm retreat
-- close-range fallback movement
-- commander rearward movement
+- An original living commander remains the company's morale/authority source while alive even if temporarily outside the 180-unit tight-proximity radius.
+- Detailed tactical soldier orders still require the established 350-unit local soldier-command radius.
+- Commander death is the actual command-loss event.
+- A replacement commander must physically reach the company before authority and BREACH viability return.
 
-The renderer draws the musket, bayonet, saber, and attack effects from the actor's `facing` value, so this is a visible sprite-direction fix rather than telemetry-only state.
+### Coordinated withdrawal
 
-### Bug Fix — adaptive-company rebuilding now respects chosen size
+- `RALLY` and rearward `DEFEND` move commander and soldiers together.
+- Commander guard/combat distractions are suppressed while actively withdrawing.
+- E/D troops do not begin a fresh autonomous bayonet charge during RALLY/REGROUP withdrawal.
+- Rearward-moving units face their movement direction instead of moonwalking.
 
-v3.1 introduced commander-selected 2–14 soldier companies, but the old rebuild thresholds were still fixed at 4 soldiers to enter rebuild and 8 to recover. A fully staffed 2–4 man command could therefore be treated as permanently depleted and remain in RALLY.
+### Adaptive rebuild thresholds
 
-v3.1.1 scales rebuild thresholds relative to the commander's chosen target size.
+Rebuild thresholds scale with the commander's chosen 2–14 target size instead of always using the old 4/8 thresholds.
 
-Examples verified by regression:
+Verified examples:
 
-- target **2** → rebuild at **1**, ready again at **2**
-- target **14** → rebuild at **4**, ready again at **8**, preserving the previous large-company behavior
+- target **2** → low **1**, ready **2**
+- target **14** → low **4**, ready **8**
 
-### Audit / UI — siege-blocked emergency recovery
+### Siege-blocked emergency recovery
 
-A long-run economy sample produced a wiped Left army with about **$2,304.97** still in treasury. The economy remained finite and below the existing $3,000 automated ceiling, but a rich 0-soldier army looked suspicious.
+When a badly depleted army cannot recruit because a viable enemy BREACH controls its fieldwork, the General reports **`MUSTER BLOCKED`** instead of misleadingly reporting `RECOVER F`. Once the fieldwork is relieved, emergency F recruitment resumes. The established fieldwork logistics blockade remains intact.
 
-The recovery code was audited and the player-facing budget state is now explicit:
-
-- if an army has fewer than 7 soldiers and recruitment is possible → **RECOVER F**
-- if a viable enemy BREACH is blocking the fieldwork → **MUSTER BLOCKED**
-- once that BREACH is relieved → emergency F recruitment resumes immediately
-
-A targeted deployed regression reproduces a **0-soldier / $2,305** defender under a viable six-man enemy BREACH, proves recruitment is blocked and labeled `MUSTER BLOCKED`, then relieves the siege and proves the General immediately buys 3 F musketeers under `RECOVER F`.
-
-This does **not** weaken the existing fieldwork logistics rule. An overrun fieldwork still blocks paid reinforcement.
-
-## v3.1 — Adaptive Company Cohesion foundation
-
-Commanders choose a target load from **2–14 musketeers** rather than defaulting to 14.
-
-Mission preference bands remain:
-
-- **BUILD:** 2–6
-- **DEFEND:** 4–8
-- **CONTEST:** 5–10
-- **ATTACK:** 8–12
-- **SIEGE:** 10–14
-
-High upkeep can push new commands smaller. If all 11 company slots exist and more soldiers are needed, existing targets may expand toward 14.
-
-### Cohesion tradeoff
-
-Cohesion scales with living company load from about **1.22 at 2 soldiers** to **0.84 at 14 soldiers**.
-
-Smaller commands gain:
-
-- tighter spacing
-- faster formation recovery
-- faster commander decisions
-- faster formal-volley synchronization
-
-Larger commands gain:
-
-- more simultaneous musket mass
-- greater attrition depth
-- easier threshold access: formal volley at 4 ready musketeers, counter-charge evaluation at 5, BREACH viability at 6
-
-Small companies receive no free raw damage, generic aim bonus, or global reload bonus.
-
-## Army / rank foundations preserved
+## Core gameplay invariants
 
 - fresh war: **0 musketeers per side**
 - maximum: **150 musketeers per army**
@@ -140,88 +114,59 @@ Small companies receive no free raw damage, generic aim bonus, or global reload 
 - bounty rate **50% of defeated musketeer rank price**
 - living-army upkeep **1.60% of army value/s**
 - musket base reload **30 seconds**
+- veteran minimum reload **27 seconds**
+- D Assault Drill minimum **25 seconds** only under its assault-order conditions
 - F→E at **4 XP**
 - E→D at **10 XP**
 - every earned XP restores **20 HP**, capped at full health
-- D Assault Drill remains limited to SIEGE / BREACH / commander CHARGE
 - only F / E / D are unlocked in Phase 3
+- individual soldier tactical-command radius **350**
+- tight commander/company proximity metric **180**
+- soldier rejoin completion radius **285**
+- replacement commanders join physically
+- fieldwork controls paid reinforcement and is not a forward spawn
+- D Assault Drill remains limited to SIEGE / BREACH / commander CHARGE
+- Form I remains **Shii-Cho**
+- exact 15-phase class roadmap remains intact
 
-## Final deployed verification — v3.1.1
+## Latest deployed verification
 
-Exact run `31358519582` tested Vercel preview `trendy-game-k8cush2ly-chclpersonal-9731s-projects.vercel.app` at exact HEAD `d79cbcf36fadd375125b8c5b0ad30f3117fe3dc6`.
+Exact run `31365761574` tested Vercel preview `trendy-game-5l9jf5iof-chclpersonal-9731s-projects.vercel.app` at exact HEAD `910ce709bd3c2505005e32e8bbdd8db7fdc34896`.
 
-**Result: 20 / 20 Playwright tests passed in about 4.2 minutes.**
+**Result: 22 / 22 Playwright tests passed in about 4.0 minutes.**
 
-The gate includes:
+The two new frontend regressions verify:
 
-1. v3.1.1 metadata / command-authority model
-2. adaptive 2–14 rebuild thresholds
-3. MUSTER BLOCKED → RECOVER F after siege relief
-4. zero-soldier start / 150 cap
-5. small-vs-large cohesion tradeoff
-6. 151st-purchase rejection
-7. direct and earned D progression
-8. Phase-2 F/E economy compatibility
-9. D Assault Drill activation
-10. funded SIEGE D procurement
-11. 300-second autonomous self-play
-12. 4 × 600-second economy calibration
-13. 9 × 900-second natural-siege acceptance
-14. physical commander return
-15. fieldwork recruitment block/reopen
-16. controlled BREACH fortress damage
-17. Pause / Speed / Front controls
-18. living-commander separation vs commander-death command loss
-19. coordinated RALLY retreat + visible facing direction
-20. physical replacement joining before command/BREACH restoration
+1. primary UI is battle-first; old development chrome and `.card` stacks are absent; Left/Right values use separate columns; advanced telemetry is hidden until **Details** is opened
+2. mobile layout places the battlefield above the information panel and has no page-level horizontal overflow
 
-### Economy audit — 4 × 600 seconds
+The previous 20 v3.1.1 regressions also remained green, covering command authority, adaptive rebuild thresholds, MUSTER BLOCKED recovery, zero-soldier start, 150 cap, adaptive-company tradeoffs, D progression, F/E economy compatibility, D Assault Drill, autonomous self-play, economy calibration, natural siege, commander return, fieldwork recruitment control, controlled BREACH damage, controls, coordinated withdrawal, visible facing, and physical replacement joining.
 
-Seeds 32101–32104 all preserved technical invariants.
+### Deterministic behavior preservation
 
+The frontend-only build reproduced the same long-run telemetry as the previous verified v3.1.1 build.
+
+**4 × 600-second economy audit, seeds 32101–32104:**
+
+- all technical invariants valid
 - peak living army: **66**
 - peak companies: **11**
 - maximum sampled D share: about **6.45%**
 - highest sampled treasury: about **$2,304.97**, seed 32103
-- seed 32103 ended at **0 / 32 living musketeers** with the Left E fortress damaged to about **6257.57 / 6500**
+- seed 32103 ended at **0 / 32 living musketeers**, Left E fortress about **6257.57 / 6500**
 
-The high treasury remains a recorded balance/operational observation rather than being hidden. The dedicated muster-block regression proves that siege logistics can legitimately create a rich-but-unable-to-recruit state and that recruitment resumes after relief.
+The high treasury remains a recorded balance/operational observation rather than being hidden.
 
-### Natural siege audit — same 9 × 900-second seeds
+**9 × 900-second natural-siege audit, seeds 32201–32209:**
 
-The same seeds 32201–32209 used for v3.1 were replayed after the command-continuity/rebuild fixes.
+- all technical invariants valid
+- only seed 32207 produced fortress damage
+- Left produced **2 fortress hits**
+- minimum Left BREACH distance about **214.155**
+- Right E fortress **6500 → about 6486.27 HP**
+- the other eight seeds produced zero fortress hits
 
-Only **seed 32207** produced fortress damage:
-
-- Left fortress hits: **2**
-- minimum Left BREACH distance: about **214.155**
-- Right E fortress: **6500 → about 6486.27 HP**
-- peak armies: **59 / 63**
-- peak company counts: **11 / 10**
-
-The other eight seeds produced zero fortress hits.
-
-This is a meaningful stabilization result: v3.1 produced **123 combined fortress hits** in the same nine-seed audit, including a 117-hit seed. v3.1.1 produced **2 total hits**. The 117-hit sustained-BREACH warning therefore **did not reproduce**, while natural fortress conversion remains possible.
-
-## Failed / corrected evidence retained
-
-- v3.1.1 run `31358114685`: **19/20 passed**. The sole failure was a new MUSTER BLOCKED test that forgot to set the attacker company's target to the intended six-man BREACH configuration. The already-existing fieldwork blockade regression passed in that same run. The test setup was corrected; no gameplay workaround was added.
-- earlier universal-passive-D candidates remain rejected because they suppressed natural siege and/or altered the established E economy.
-- the old separated-commander soldier fallback remains rejected because it created rejoin churn and erased natural siege conversion.
-
-## Hard command / movement invariants
-
-- living original commander retreat/spacing does **not** by itself cause morale collapse
-- detailed tactical orders remain local; individual soldier tactical radius stays **350**
-- tight commander/company proximity remains **180** as a proximity/cohesion measurement
-- commander death causes command disruption
-- replacement commanders must physically join before restoring authority
-- RALLY/rearward DEFEND move commander and soldiers together
-- units moving backward face their movement direction
-- fieldwork paid-recruitment blockade remains intact
-- BREACH still requires at least 6 company musketeers plus an active command source
-- committed siege baseline and fortress mechanics remain intact
-- Form I remains Shii-Cho; Form II Makashi remains locked in this patch
+This exactly preserves the stabilized v3.1.1 siege sample rather than altering it through frontend work.
 
 ## Branch policy
 
@@ -235,7 +180,7 @@ Do not create version-specific development branches. Legacy `update/v2.17`, `upd
 1. **F Class — STABLE**
 2. **E Class — STABLE**
 3. **D Class — NOW: v3.1.1 automated verified candidate**
-4. **C Class — NEXT CLASS, still locked during Phase-3 commander-form stabilization**
+4. **C Class — NEXT CLASS, locked until the next isolated Phase-3 commander-form slice is verified**
 5. B Class
 6. A Class
 7. S Class
@@ -250,11 +195,11 @@ Do not create version-specific development branches. Legacy `update/v2.17`, `upd
 
 ### Near-term Phase 3 roadmap
 
-- **v3.1.1:** Command Continuity / Coordinated Withdrawal — automated gate passed 20/20
-- **next candidate:** Form II — **Makashi**, now that the 117-hit v3.1 siege outlier no longer reproduces in the same nine-seed audit
-- continue tracking siege-blocked treasury accumulation as an operational/economy observation rather than weakening fieldwork logistics
-- **C Class:** remains locked until the next Phase-3 commander-form slice is isolated and verified
-- maintain healthy future rank ecology inside the 150-soldier army space rather than making every higher class exponentially invisible
+- **DONE:** v3.1.1 Command Continuity / Coordinated Withdrawal
+- **DONE:** battle-first frontend rework / anti-generic-UI cleanup
+- **NEXT:** Form II — **Makashi**, isolated as its own commander-form slice
+- continue tracking siege-blocked treasury accumulation without weakening fieldwork logistics
+- **LATER:** C Class after the commander-form slice is independently verified
 
 ## Verification / acceptance policy
 
