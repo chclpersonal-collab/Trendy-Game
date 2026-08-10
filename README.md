@@ -1,42 +1,42 @@
 # Musketeer Battle Simulator
 
-Autonomous two-army musketeer battle simulation. Development is intentionally incremental: each candidate must preserve the established combat and progression invariants, then pass deployed-browser regression tests before a phase can be called stable.
+Autonomous two-army musketeer battle simulation. Development is incremental and evidence-gated: implementation is not considered complete until the exact deployed candidate passes browser regression tests and its balance implications are reviewed.
 
 ## Current state
 
 - **Current candidate:** Phase 2 **v2.20**
 - **Class:** E Class stabilization
 - **Experimental Pricing:** **14 / 15**
-- **Status:** candidate until the protected Vercel/Playwright gate and human playtest are reviewed
-- **Next gate:** v2.21 / Pricing Patch 15/15
+- **Patch 14 policy:** controlled hold at F $10, E $32, $10/s base income, 1.60% living-army-value upkeep/s, and 50% defeated-rank kill bounty
 - **Phase 3 / D Class:** locked until Phase 2 is stable
 - **Commander Form II / Makashi:** locked until the current combat layer is stable
+- **Next gate:** v2.21 / Pricing Patch 15/15
 
-## v2.20 focus — Physical Fieldwork Muster / Emergency Reserve
+## v2.20 — Siege Baseline Preservation / Development Consolidation
 
-Patch 14 deliberately holds the global economy at F $10, E $32, $10/s base income, 1.60% living-army-value upkeep per second, and 50% rank-price kill bounties. This isolates the logistics change instead of stacking an economy rebalance on top of it.
+v2.20 intentionally avoids stacking new combat or economy balance changes on top of the newly proven v2.19 natural breakthrough. Its job is to preserve that baseline, audit a proposed reinforcement change, harden deployed regression coverage, and simplify the repository workflow.
 
-The v2.19 fieldwork rule said paid reinforcements were tied to fieldworks, but the implementation still spawned paid musketeers near the fortress. v2.20 closes that mismatch:
+### Fieldwork audit result
 
-- normal paid musketeers physically muster **150 world units behind their fieldwork** in a rear staging zone;
-- a viable enemy BREACH within **205 world units** still blocks that paid fieldwork muster;
-- if the blocked defender falls below **7 musketeers**, the fortress can release **one emergency F reserve at a time for $15**;
-- emergency reserve cannot buy E Class and stops once the army recovers to 7;
-- the initial 14-musketeer armies still deploy from the fortress, preserving opening-battle pacing;
-- free replacement commanders keep their existing safe-fieldwork / fortress-fallback deployment logic.
+A proposed v2.20 change moved normal paid musketeer spawns from the fortress to a forward fieldwork staging point. It was rejected after deployed-browser testing:
 
-The first 55-unit candidate over-strengthened fieldwork reinforcement and caused the established three-seed natural-siege gate to fall to zero fortress hits. The 150-unit rear staging distance is the smallest responsible balance correction being tested next: reinforcements still originate from fieldwork logistics, but they do not appear almost directly on top of a contested line.
+- 55 units behind the fieldwork: the unchanged three-seed × 600-second natural-siege gate fell to **0 fortress hits**.
+- 150 units behind the fieldwork: the same gate again produced **0 fortress hits**.
+- In the 150-unit run, emergency-reserve logic triggered **0 times**, so it was not the cause of the regression.
+- Seed 21902, which had reached roughly 214 units from a fortress in the verified v2.19 sample, only reached roughly 678 units in the 150-unit experiment.
+
+Therefore fieldworks remain **logistics-control nodes**, not forward troop spawn points. A viable enemy BREACH within one musket range still blocks paid recruitment; once relieved, paid musketeers continue to deploy physically from the fortress. This preserves the proven siege balance instead of compensating for a failed reinforcement concept with arbitrary attacker buffs.
 
 ## Branch policy
 
-The repository now uses one reusable development branch:
+From v2.20 onward there is one active development branch:
 
 - `main` — accepted/stable baseline
-- `agent/current` — **the only development branch used from v2.20 onward**
+- `agent/current` — the single rolling development branch
 
-Do **not** create `update/v2.20`, `update/v2.21`, or other version-specific branches. Version history belongs in commits, PR history, the changelog, and test evidence rather than permanent branches.
+Do not create version-specific development branches such as `update/v2.20` or `update/v2.21`. Versions are preserved by commits, PR history, changelog entries, and test artifacts rather than permanent branches.
 
-Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete and should be deleted after their history is confirmed reachable from the rolling branch/main. They are not valid development targets and no CI is triggered from them.
+Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete. Their PRs are closed and CI no longer runs on them. Physical deletion of those refs is cleanup-only and does not change the active workflow.
 
 ## Hard invariants
 
@@ -70,4 +70,4 @@ Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete and 
 
 ## Verification policy
 
-A change is not called complete merely because code was written. Candidates are checked against the actual Vercel preview with Playwright for boot/runtime errors, deterministic self-play, fortress pressure, logistics regressions, controls, company cap, roadmap count, treasury/fortress validity, and the current phase/version constants. Human playtesting remains the final balance gate for Phase 2.
+The protected Vercel preview is tested with Playwright for boot/runtime errors, deterministic self-play, natural fortress pressure, fieldwork recruitment blocking/reopening, controlled BREACH damage, controls, company cap, roadmap count, treasury/fortress validity, and the current phase/version constants. A failed experiment stays failed in the evidence; acceptance tests are not weakened to make a candidate pass.

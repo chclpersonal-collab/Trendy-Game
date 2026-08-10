@@ -13,4 +13,8 @@ window.GameTest={
  snapshot:()=>JSON.parse(JSON.stringify(window.__battleSim.state()))
 };
 
+const releaseState=window.__battleSim.state;
+window.__battleSim.state=()=>{const state=releaseState();state.version='2.20';state.rework='pricing-patch-14-baseline-preservation-and-branch-consolidation';return state};
+function applyReleaseCopy(){document.title='Musketeer Battle Simulator — Phase 2 v2.20';const subtitle=document.querySelector('header .muted');if(subtitle)subtitle.textContent='Phase 2 · v2.20 · Experimental Pricing 14/15 / Siege Baseline Preservation / Development Consolidation';const rules=[...document.querySelectorAll('.card')].find(card=>card.querySelector(':scope > b')?.textContent==='Phase 2 Rules');if(!rules)return;for(const line of rules.querySelectorAll(':scope > div')){const text=line.textContent.trim();if(text.startsWith('• Experimental pricing patch'))line.textContent='• Experimental pricing patch 14/15 is a controlled hold: F remains $10, E remains $32, base income remains $10/s, upkeep remains 1.60% of living army value per second, and kill bounty remains 50% of defeated rank price.';else if(text.startsWith('• Fieldworks now matter'))line.textContent='• Fieldworks are reinforcement logistics control nodes, not forward spawn points. A viable enemy BREACH within one musket range blocks that side’s paid musketeer recruitment until pushed back. Paid musketeers continue to deploy physically from the fortress, preserving the proven siege baseline; free commander replacements retain their existing safe-fieldwork / fortress-fallback behavior.'}}
+applyReleaseCopy();
 reset();requestAnimationFrame(frame);
