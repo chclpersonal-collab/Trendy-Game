@@ -10,7 +10,7 @@ async function openGame(page){
 test('primary game UI is battle-first and exposes real training stats plus instant export',async({page},testInfo)=>{
   await openGame(page);
   await expect(page.locator('header .title')).toHaveText('Musketeer Battle Simulator');
-  await expect(page.locator('header .version')).toHaveText('v3.4.1');
+  await expect(page.locator('header .version')).toHaveText('v3.4');
   await expect(page.locator('#exportStateBtn')).toBeVisible();
   await expect(page.locator('.card')).toHaveCount(0);
   await expect(page.getByText('Roadmap',{exact:true})).toHaveCount(0);
@@ -23,7 +23,7 @@ test('primary game UI is battle-first and exposes real training stats plus insta
   await expect(page.locator('#offenseStat [data-side="left"]')).toHaveText('Lv 1');
   await expect(page.locator('#details')).not.toHaveAttribute('open','');
   await page.locator('#details summary').click();await expect(page.locator('#pricingStat')).toBeVisible();await expect(page.locator('#cPromotionsStat')).toBeVisible();
-  const p=testInfo.outputPath('ui-v341-desktop.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v341-desktop.png',{path:p,contentType:'image/png'});
+  const p=testInfo.outputPath('ui-v34-desktop.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v34-desktop.png',{path:p,contentType:'image/png'});
 });
 
 test('mobile layout keeps battlefield above information panel with the Export State control available',async({page},testInfo)=>{
@@ -31,5 +31,5 @@ test('mobile layout keeps battlefield above information panel with the Export St
   const field=await page.locator('#fieldWrap').boundingBox(),side=await page.locator('#side').boundingBox();expect(field).not.toBeNull();expect(side).not.toBeNull();expect(side.y).toBeGreaterThan(field.y);
   await expect(page.locator('#exportStateBtn')).toBeVisible();
   const overflow=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,width:innerWidth}));expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.width+1);
-  const p=testInfo.outputPath('ui-v341-mobile.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v341-mobile.png',{path:p,contentType:'image/png'});
+  const p=testInfo.outputPath('ui-v34-mobile.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v34-mobile.png',{path:p,contentType:'image/png'});
 });
