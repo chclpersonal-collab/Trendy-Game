@@ -7,219 +7,185 @@ Autonomous two-army musketeer battle simulation developed on the single rolling 
 - **Phase 1 / F Class:** STABLE
 - **Phase 2 / E Class:** STABLE
 - **Phase 3 / D foundation:** STABLE
-- **Current gameplay:** Phase 3 **v3.2.1 — Rank Ecology / Elite Siege Discipline**
+- **Phase 3 v3.2.1 rank ecology:** STABLE / accepted
+- **Current gameplay:** Phase 4 **v3.3 — C Class / Volley Drill**
 - **Current frontend:** battle-first interface rework, verified
 - **Status:** **AUTOMATED VERIFIED CANDIDATE**
-- **Exact verified deployed gameplay HEAD:** `906df2d8d21950396d442deb08046609fbea19e2`
-- **Protected Playwright run:** `31378905265` — **30/30 passed**
-- **Protected Vercel preview:** `trendy-game-qpdpbwah9-chclpersonal-9731s-projects.vercel.app`
-- **Evidence artifact:** `9059201788`
-- **Evidence SHA256:** `0008d9f5eed07d4c82683530a409b94917ab64a6e1ee15a2513816c6d7d01299`
+- **Exact verified deployed gameplay HEAD:** `a0e217657fb505e2884ab8619a7a0e1285371722`
+- **Protected Playwright run:** `31452686999` — **33/33 passed**
+- **Protected Vercel preview:** `trendy-game-4bg0pkab8-chclpersonal-9731s-projects.vercel.app`
+- **Evidence artifact:** `9086965631`
+- **Evidence SHA256:** `b9065ab3ca24ebc981b3c811cf44236e4165d27ea376b0b04971e734dc95b52a`
 - **Army foundation:** 0 starting musketeers; 150-musketeer hard ceiling per side
 - **Adaptive companies:** commanders choose 2–14 soldiers; 11 companies maximum per army
-- **Rank ecology:** F majority / E regular / D rare-visible
+- **Rank ecology:** F majority / E regular / D rare-visible / C scarce-recurring
 - **Commander Form I / Shii-Cho:** STABLE crowd-oriented baseline
-- **Commander Form II / Makashi:** unlocked and verified as the precise anti-commander duel form
-- **C Class:** next isolated class candidate after v3.2.1 acceptance
+- **Commander Form II / Makashi:** verified precise anti-commander duel form
+- **B Class:** next isolated soldier-rank candidate after v3.3 acceptance
+- **Form III / Soresu:** later, isolated from B Class
 
-## Phase 3 v3.2.1 — rank ecology / elite siege discipline
+## Phase 4 v3.3 — C Class / Volley Drill
 
-### Balance Rework — F majority, E regular, D rare-visible
+### Major Update — C Class
 
-The previous procurement model treated E and D as one combined elite pool and allowed routine D purchasing only during SIEGE. User playtesting showed the practical result: E could be sparse and D could be absent for long periods even in mature armies.
+C is the fourth unlocked soldier rank. It follows the existing dual-path progression rule: every unlocked rank can be **bought directly or earned in combat**.
 
-v3.2.1 separates E and D into independent procurement layers:
+- direct price: **$150**
+- D → C promotion: **18 total XP**
+- progression thresholds therefore grow additively: **4 → 10 → 18 XP**
+- each earned XP still restores **20 HP**, capped at full health
+- C inherits E's autonomous bayonet capability
+- C inherits D's Assault Drill under SIEGE / BREACH / commander CHARGE
+- C does not receive a large always-on raw-stat jump simply because its XP floor is 18
+- C uses the same ordinary strategic weight as D; its new advantage is tactical specialization
 
-- E target share: **18% BUILD / 18% DEFEND / 20% CONTEST / 24% ATTACK / 26% SIEGE**
-- D target share: **3% BUILD / 3% DEFEND / 4% CONTEST / 5% ATTACK / 6% SIEGE**
-- non-SIEGE D purchasing begins only once an army has at least **18** musketeers
-- the established funded SIEGE D top-off remains available from **12** musketeers
-- recovery below 7 musketeers remains F-first
-- E and D each have their own share target; D no longer substitutes for the E layer
-- F remains the intended majority rather than being displaced by elites
+The 18-XP threshold intentionally avoids exponential progression. Higher ranks are meant to be rarer, not effectively absent from normal wars.
 
-This is an intentional classified retirement of the old v3.0 **routine D outside SIEGE = 0%** procurement restriction. D remains rare, but is no longer designed to be practically mythical.
+### Minor Update / Combat Rework — Volley Drill
 
-### Preserved progression and economy
+C's unique mechanic is **formal Volley Drill**. It activates only when a C musketeer fires as part of a commander-issued formal `VOLLEY`.
 
-The ecology patch does **not** make elites common by weakening progression or combat costs:
+During that formal volley:
 
-- F→E remains **4 earned XP**
-- E→D remains **10 total XP**
-- XP healing remains **+20 HP per earned XP**
-- prices remain **F $10 / E $32 / D $80**
-- bounty remains **50% of defeated-rank price**
-- passive income remains **$10/s**
-- living-army upkeep remains **1.60% of army value/s**
-- D remains E-equivalent outside its established Assault Drill conditions
-- D Assault Drill remains restricted to SIEGE / BREACH / commander CHARGE
+- **+4.5 percentage points** musket aim
+- **2.5 seconds faster** reload
+- **24.5-second minimum** reload floor
 
-### Bug Fix / Command Rework — Elite Siege Discipline
+Outside a formal volley, those C-specific bonuses are inactive. HOLD, DEFEND and BRACE do not silently activate Volley Drill. This keeps C's identity narrow and prevents it from becoming a passive universal upgrade.
 
-The first ecology candidate revealed an existing order conflict: E/D autonomous bayonet initiation is evaluated before BREACH-specific movement. With many more living E/D soldiers, a siege spearhead gained many more opportunities to abandon its explicit BREACH press for an autonomous bayonet charge.
+### Rank Ecology Rework — scarce but recurring C
 
-v3.2.1 therefore applies the same type of command discipline already used by BRACE/RALLY:
+C procurement is layered on top of the accepted v3.2.1 E/D ecology rather than replacing it.
 
-- an E/D soldier under explicit **SIEGE or BREACH** does not start a fresh autonomous bayonet charge
-- a charge already in progress may finish
-- ordinary E/D autonomous bayonet behavior outside SIEGE/BREACH is unchanged
-- D Assault Drill can therefore operate under the siege orders it was designed for instead of being repeatedly pre-empted by a fresh charge
+C target shares:
 
-A focused deployed regression verifies both halves: no fresh charge under BREACH, and autonomous charge still starts under ordinary ADVANCE combat.
+- BUILD: **1.5%**
+- DEFEND: **2.5%**
+- CONTEST: **2.0%**
+- ATTACK: **2.5%**
+- SIEGE: **1.5%**
 
-### Rank-ecology measurement — 600 seconds
+General AI considers a direct C purchase only when:
 
-Dedicated seed `34202` sampled both mature armies every 30 seconds after the opening 120 seconds.
+- the army has at least **24 musketeers**
+- the E and D foundation is already sufficiently healthy
+- upkeep pressure is below **84%**
+- the protected reserve remains affordable after the $150 purchase
+- established E/D procurement does not currently have higher priority
 
-Across **32 mature-army samples**:
+This preserves the hierarchy **F common → E regular → D rare-visible → C scarce-recurring**.
 
-- mean E share: **17.53%**
-- mean D share: **2.96%**
-- mean combined E+D share: **20.49%**
-- maximum combined elite share: **30%**
-- D was present in **75%** of mature-army samples
-- cumulative direct buys: Left **102 F / 32 E / 5 D**, Right **134 F / 36 E / 5 D**
+### C ecology measurement — 600 seconds
 
-This is evidence for the intended pyramid in the tested sample: roughly four-fifths common F troops, a meaningful E veteran layer, and a small but recurring D layer.
+Seed `35304` produced **29 mature-army samples** after the opening period:
 
-### Rejected first candidate
+- mean E share: **17.22%**
+- mean D share: **4.51%**
+- mean C share: **0.91%**
+- mean combined E+D+C share: **22.64%**
+- C was present in **24.14%** of mature-army samples
+- at least one direct C purchase occurred naturally
+- the final instant happened to contain **0 C / 0 C**, showing that C remains mortal and scarce rather than permanently guaranteed
 
-Run `31378197525` is retained as failed evidence.
+The evidence supports the intended behavior in this deterministic sample: C appears often enough to participate, but remains far rarer than E or D.
 
-- rank ecology itself passed: mean E **15.31%**, mean D **2.80%**, D present in **68.75%** of mature samples
-- one UI regression still expected the old `v3.2` badge
-- more importantly, **all nine protected 900-second natural-siege seeds produced zero fortress hits**
-- the siege acceptance gate was not weakened
+### Test Maintenance — rejected first v3.3 verification
 
-The stale UI assertion was updated to `v3.2.1`. The gameplay failure led to the Elite Siege Discipline fix above.
+Run `31452237019` finished **31/33** and is retained as failed evidence.
 
-## Phase 3 v3.2 — Makashi + tactical combat continuity
+The gameplay itself remained technically bounded and the C ecology sample already showed mean C about **0.91%** with **24.14%** presence. The two failures were test assumptions:
 
-### Bug Fix — Local cross-lane enemy awareness
+1. the deterministic C-procurement setup accidentally triggered the already-established wealthy-E top-off before C eligibility;
+2. one core metadata test still hard-coded v3.2 / Phase 3 / F-E-D-only expectations.
 
-A nearby enemy can be horizontally local but vertically separated enough that an allied company would previously continue along its lane without closing to engage.
+The setup was corrected to represent an actually completed E/D foundation and the stale metadata assertions were advanced to Phase 4. No C balance threshold was weakened and no gameplay workaround was added.
 
-v3.2 adds bounded local interception:
+## Preserved systems
 
-- requires the established local soldier-command relationship; it is not global battlefield awareness
-- horizontal relevance is limited to **240** units
-- total scan relevance is limited to **310** units
-- vertical interception remains leashed to the company's formation band
-- BREACH, SIEGE, CHARGE, BRACE, VOLLEY, RALLY, REGROUP, and active rearward movement are not overridden
+### v3.2.1 rank ecology / Elite Siege Discipline
 
-### Bug Fix — Withdrawal combat continuity
+- E and D remain independent procurement layers.
+- E targets remain 18–26% by stance.
+- D targets remain 3–6% by stance.
+- Mature non-SIEGE forces may buy rare D troops.
+- The funded early SIEGE D top-off remains available.
+- Fresh autonomous E/D bayonet starts do not override explicit SIEGE/BREACH orders.
+- F→E remains 4 XP and E→D remains 10 XP.
 
-- loaded musketeers can fire while continuing RALLY/rearward movement
-- commanders retain danger-close self-defense while withdrawing with their company
-- E/D soldiers may use contact bayonet self-defense during a threatened withdrawal
-- F soldiers do **not** gain generic melee
-- panic/disarm behavior remains separate
-- rearward-facing movement from v3.1.1 remains intact
+### v3.2 commander combat
 
-### Minor Update — Form II Makashi
+- Form I Shii-Cho remains the crowd-oriented commander baseline.
+- Form II Makashi remains the precise isolated anti-commander duel form.
+- No projectile deflection exists in Forms I–II.
+- Cross-lane awareness remains locally bounded rather than global.
+- Coordinated withdrawal can continue fighting without abandoning retreat movement.
 
-Makashi is the second autonomous commander lightsaber form.
+### v3.1.1 command continuity
 
-- precise single-target anti-commander duel role
-- automatic selection for an appropriate isolated commander duel
-- stronger single-target commander damage than Shii-Cho
-- low crowd utility; crowded local fights return to Shii-Cho
-- no disarm
-- no projectile deflection
-
-### Efficiency / Complexity Audit
-
-Two v3.2 target-scan optimization experiments were rejected after each produced zero fortress hits across the protected nine-seed siege suite. Both failed designs remain absent from the final tree. The accepted v3.2 build completed its full deployed suite in about 4.0 minutes.
-
-## Frontend rework — battle first
-
-The battlefield is the primary surface. The right-side information rail keeps live battle information immediately visible while advanced telemetry is placed under one closed-by-default **Details** disclosure.
-
-The old player-facing development material was removed from the gameplay screen: `Phase 3 Rules`, locked `Commander Forms`, the 15-phase `Roadmap`, `General AIs` wording, release-note header copy, and paragraph-length helper prose. The project/runtime roadmap still exists and is validated; it is simply not normal gameplay UI.
-
-The interface uses explicit Left/Right columns, a system UI font with tabular numerals for statistics, no decorative card stack, and responsive desktop/mobile layouts. The existing **Pause/Resume, Speed, Front, Restart** controls remain intact.
-
-## Phase 3 v3.1.1 — command continuity
-
-### Commander retreat is not commander death
-
-- an original living commander remains the company's morale/authority source while alive even if temporarily outside the 180-unit tight-proximity radius
-- detailed tactical soldier orders still require the established 350-unit local soldier-command radius
-- commander death is the actual command-loss event
-- a replacement commander must physically reach the company before authority and BREACH viability return
-
-### Coordinated withdrawal
-
-- RALLY and rearward DEFEND move commander and soldiers together
-- E/D troops do not begin a fresh autonomous bayonet charge during RALLY/REGROUP withdrawal
-- rearward-moving units face their movement direction instead of moonwalking
-- v3.2 allows threatened withdrawing units to defend themselves without abandoning the withdrawal
-
-### Adaptive rebuild thresholds
-
-Rebuild thresholds scale with the commander's chosen 2–14 target size rather than fixed 4/8 thresholds. Examples: target 2 → low 1 / ready 2; target 14 → low 4 / ready 8.
-
-### Siege-blocked emergency recovery
-
-When a badly depleted army cannot recruit because a viable enemy BREACH controls its fieldwork, the General reports **MUSTER BLOCKED**. Once the fieldwork is relieved, emergency F recruitment resumes. The fieldwork logistics blockade remains intact.
+- living commander retreat/separation is not commander death
+- detailed tactical orders still require the 350-unit soldier command radius
+- tight company proximity remains a separate 180-unit metric
+- commander death is the real command-loss event
+- replacement commanders must physically join before restoring authority/BREACH viability
+- RALLY/rearward DEFEND move commander and troops together
+- rearward movers face their actual movement direction
+- adaptive rebuild thresholds scale with 2–14 chosen company size
+- `MUSTER BLOCKED` remains the correct state when enemy BREACH prevents paid recruitment at fieldwork
 
 ## Core gameplay invariants
 
 - fresh war: **0 musketeers per side**
 - maximum: **150 musketeers per army**
 - commanders are separate from the 150-musketeer count
-- commander/company target: **2–14 soldiers**
+- company target: **2–14 soldiers**
 - hard company maximum: **14 living musketeers**
 - hard army company maximum: **11**
-- F price **$10**, E **$32**, D **$80**
-- passive income **$10/s**
-- bounty rate **50% of defeated musketeer rank price**
-- living-army upkeep **1.60% of army value/s**
-- musket base reload **30 seconds**
-- veteran minimum reload **27 seconds**
-- D Assault Drill minimum **25 seconds** only under its assault-order conditions
-- F→E at **4 XP**
-- E→D at **10 XP**
-- every earned XP restores **20 HP**, capped at full health
-- only F / E / D soldier ranks are unlocked in Phase 3 v3.2.1
-- individual soldier tactical-command radius **350**
-- tight commander/company proximity metric **180**
-- soldier rejoin completion radius **285**
+- prices: **F $10 / E $32 / D $80 / C $150**
+- passive income: **$10/s**
+- bounty: **50% of defeated musketeer rank price**
+- living-army upkeep: **1.60% of army value/s**
+- musket base reload: **30 seconds**
+- veteran minimum reload: **27 seconds**
+- D Assault Drill minimum: **25 seconds** under assault-order conditions only
+- C Volley Drill minimum: **24.5 seconds** during formal VOLLEY only
+- F→E: **4 XP**
+- E→D: **10 XP**
+- D→C: **18 XP**
+- each earned XP restores **20 HP**, capped at full health
+- currently unlocked soldier ranks: **F / E / D / C only**
+- soldier tactical-command radius: **350**
+- tight commander/company proximity metric: **180**
+- soldier rejoin completion radius: **285**
 - replacement commanders join physically
 - fieldwork controls paid reinforcement and is not a forward spawn
-- commander forms currently unlocked: **I Shii-Cho** and **II Makashi**
-- no commander projectile deflection in Forms I–II
+- commander forms currently unlocked: **I Shii-Cho / II Makashi**
 - exact 15-phase class roadmap remains intact
-
-The previous D procurement restriction is the one intentionally changed invariant in v3.2.1: D is no longer routine-SIEGE-only once a mature army exists.
 
 ## Latest deployed verification
 
-Exact run `31378905265` tested Vercel preview `trendy-game-qpdpbwah9-chclpersonal-9731s-projects.vercel.app` at exact gameplay HEAD `906df2d8d21950396d442deb08046609fbea19e2`.
+Exact run `31452686999` tested Vercel preview `trendy-game-4bg0pkab8-chclpersonal-9731s-projects.vercel.app` at exact gameplay HEAD `a0e217657fb505e2884ab8619a7a0e1285371722`.
 
-**Result: 30 / 30 Playwright tests passed in about 5.1 minutes.**
+**Result: 33 / 33 Playwright tests passed in about 5.2 minutes.**
 
-New v3.2.1 coverage proves:
+New v3.3 coverage proves:
 
-1. E and D procurement use independent ecology targets
-2. a mature non-SIEGE force can select a rare D purchase
-3. the established early SIEGE D top-off remains available
-4. SIEGE/BREACH suppresses only fresh autonomous elite charges, while ordinary autonomous bayonet behavior remains
-5. the 600-second ecology sample satisfies the minimum E/D-presence and F-majority gates
-
-All previous v3.2/frontend/v3.1.1 technical regressions remained green.
+1. direct C purchase costs $150 and begins at C·0 / 18 total XP
+2. a D soldier promotes to C at 18 total XP while preserving +20 HP earned-XP healing
+3. Volley Drill activates for formal volley fire and not as a passive always-on bonus
+4. C procurement waits for a mature E/D foundation
+5. the 600-second C ecology sample keeps C scarce while naturally present
+6. all previous v3.2.1 rank ecology, siege discipline, Makashi, command continuity, UI, zero-start, max-150, company-size, fieldwork and BREACH regressions remain green
 
 ### Economy audit — 4 × 600 seconds
 
 Seeds 32101–32104 all remained finite and valid.
 
 - peak living army: **57**
-- peak companies: **11**
+- peak companies: **10**
 - highest sampled treasury: about **$603.76**
-- maximum sampled instantaneous D share: **12%**
-- no negative treasury, invalid rank, fortress bound, army-cap, company-cap, or finite-value failure occurred
-
-The dedicated ecology sample is the better frequency measure because the older economy audit records maxima rather than time-averaged rank shares.
+- maximum instantaneous D share: **12%**
+- three direct C purchases occurred across the eight sampled army-sides
+- no negative treasury, invalid rank, fortress-bound, army-cap, company-cap or finite-value failure occurred
 
 ### Natural-siege audit — 9 × 900 seconds
 
@@ -227,27 +193,28 @@ Seeds 32201–32209 all remained technically valid.
 
 - peak living army: **71**
 - peak companies: **11**
-- **seed 32201:** Right produced **4 fortress hits**, minimum Right BREACH distance about **214.104**, Left E fortress **6500 → about 6467.94 HP**
-- **seed 32206:** Right produced **6 fortress hits**, minimum Right BREACH distance about **191.539**, Left F fortress **4500 → about 4449.17 HP**
-- total fortress hits across the suite: **10**
-- the other seven seeds produced zero fortress hits
+- only seed **32206** produced fortress damage
+- Left produced **27 fortress hits**
+- Right E fortress: **6500 → about 6278.96 HP**
+- total fortress hits: **27**
+- the other eight seeds produced zero hits
 
-Natural fortress conversion therefore remains possible and the old v3.1 117-hit sustained-siege outlier did not return in this sample.
+This is higher than v3.2.1's 10-hit protected sample, so it remains a **monitoring observation**, not a claim of perfect siege balance. It remains far below the rejected v3.1 sustained-siege outlier of 117 hits, and the current protected acceptance gate confirms natural siege remains possible without a technical invariant failure.
 
 ## Branch policy
 
 - `main` — accepted/stable baseline
 - `agent/current` — the only active development branch
 
-Do not create version-specific development branches. Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete cleanup refs and do not drive CI.
+Do not create version-specific development branches. Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs remain obsolete cleanup refs and do not drive CI.
 
 ## Roadmap
 
 1. **F Class — STABLE**
 2. **E Class — STABLE**
-3. **D Class — STABLE foundation; v3.2.1 ecology verified candidate**
-4. **C Class — NEXT CLASS**
-5. B Class
+3. **D Class — STABLE**
+4. **C Class — NOW: v3.3 automated verified candidate**
+5. **B Class — NEXT CLASS**
 6. A Class
 7. S Class
 8. SS Class
@@ -259,16 +226,17 @@ Do not create version-specific development branches. Legacy `update/v2.17`, `upd
 14. SSS+ Class Type IV
 15. SSS+ Class Type V — final
 
-### Near-term Phase 3 roadmap
+### Near-term roadmap
 
 - **DONE:** v3.1.1 Command Continuity / Coordinated Withdrawal
-- **DONE:** battle-first frontend rework / anti-generic-UI cleanup
+- **DONE:** battle-first frontend rework
 - **DONE:** v3.2 Form II Makashi + tactical combat continuity
-- **DONE:** v3.2.1 rank ecology + Elite Siege Discipline
-- **NEXT:** C Class as its own isolated rank slice; do not mix Form III into the same implementation
-- **LATER:** Form III — **Soresu**, as a separate commander-form slice
-- continue tracking siege-blocked treasury accumulation without weakening fieldwork logistics
-- carry the v3.2.1 rank-ecology policy forward: every unlocked rank remains directly buyable and earnable, with higher ranks rare but not exponentially absent
+- **DONE / STABLE:** v3.2.1 rank ecology + Elite Siege Discipline
+- **NOW:** v3.3 C Class / Volley Drill — automated verified candidate
+- **NEXT:** B Class as its own isolated soldier-rank slice after v3.3 acceptance
+- **LATER:** Form III — **Soresu**, isolated from B Class
+- **MONITOR:** the 27-hit seed32206 siege observation without weakening fieldwork logistics or the natural-siege gate
+- preserve healthy future rank ecology: every unlocked rank remains directly buyable and earnable; avoid exponential XP/price growth that makes high ranks practically absent
 
 ## Verification / acceptance policy
 
