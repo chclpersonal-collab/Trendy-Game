@@ -16,6 +16,7 @@ Autonomous two-army musketeer battle simulation developed on the single rolling 
 - **Protected Vercel preview:** `trendy-game-8peh7qs6v-chclpersonal-9731s-projects.vercel.app`
 - **Evidence artifact:** `9087713696`
 - **Evidence SHA256:** `ed3379759feaba52f143625f31866ae2b388c032b1eeddb4011e8e810f55a699`
+- **Post-verification branch integrity:** only `README.md` differs from the verified gameplay/test HEAD; there is no untested gameplay change above it
 - **Army foundation:** 0 starting musketeers; 150-musketeer hard ceiling per side
 - **Adaptive companies:** commanders choose 2–14 soldiers; 11 companies maximum per army
 - **Rank ecology:** F majority / E regular / D rare-visible / C scarce-recurring
