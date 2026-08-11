@@ -10,12 +10,13 @@
 <header class="topbar">
   <div class="brand">
     <div class="title">Musketeer Battle Simulator</div>
-    <div class="version">v3.2.1</div>
+    <div class="version">v3.4</div>
   </div>
   <div class="controls" aria-label="Simulation controls">
     <button id="pauseBtn">Pause</button>
     <button id="speedBtn">Speed 1×</button>
     <button id="frontBtn">Front</button>
+    <button id="exportStateBtn" title="Download the current battle state as JSON">Export State</button>
     <button id="restartBtn">Restart</button>
   </div>
 </header>
@@ -34,7 +35,7 @@
       <div class="metric" id="fortHpStat"><span>Fortress</span><span data-side="left">0/0</span><span data-side="right">0/0</span></div>
       <div class="metric" id="killsStat"><span>Kills</span><span data-side="left">0</span><span data-side="right">0</span></div>
       <div class="metric" id="strategyStat"><span>Strategy</span><span data-side="left">—</span><span data-side="right">—</span></div>
-      <div class="metric" id="budgetStat"><span>Plan</span><span data-side="left">—</span><span data-side="right">—</span></div>
+      <div class="metric" id="budgetStat"><span>Budget</span><span data-side="left">—</span><span data-side="right">—</span></div>
       <div class="frontline">
         <div class="frontline-meta"><span id="momentumStat">Even</span><span id="pushStat">50%</span></div>
         <div class="bar" aria-label="Front line"><i id="pushBar"></i></div>
@@ -45,8 +46,8 @@
     <section class="side-section">
       <h2>Forces</h2>
       <div class="team-head"><span></span><span>Left</span><span>Right</span></div>
-      <div class="metric" id="integrityStat"><span>Command</span><span data-side="left">100%</span><span data-side="right">100%</span></div>
-      <div class="metric" id="uncommandedStat"><span>Uncommanded</span><span data-side="left">0</span><span data-side="right">0</span></div>
+      <div class="metric" id="integrityStat"><span>Authority</span><span data-side="left">—</span><span data-side="right">—</span></div>
+      <div class="metric" id="uncommandedStat"><span>No authority</span><span data-side="left">0</span><span data-side="right">0</span></div>
       <div class="metric" id="eclassStat"><span>E class</span><span data-side="left">0</span><span data-side="right">0</span></div>
       <div class="metric" id="dclassStat"><span>D class</span><span data-side="left">0</span><span data-side="right">0</span></div>
       <div class="metric" id="cclassStat"><span>C class</span><span data-side="left">0</span><span data-side="right">0</span></div>
@@ -119,6 +120,6 @@
     <div id="roadmap" hidden></div>
   </aside>
 </main>
-<script src="src/01.js"></script><script src="src/02.js"></script><script src="src/03.js"></script><script src="src/04.js"></script><script src="src/05.js"></script><script src="src/06.js"></script><script src="src/07.js"></script><script src="src/08.js"></script><script src="src/09.js"></script><script src="src/10.js"></script><script src="src/11.js"></script><script src="src/12.js"></script>
+<script src="src/01.js"></script><script src="src/02.js"></script><script src="src/03.js"></script><script src="src/04.js"></script><script src="src/05.js"></script><script src="src/06.js"></script><script src="src/07.js"></script><script src="src/08.js"></script><script src="src/09.js"></script><script src="src/10.js"></script><script src="src/11.js"></script><script src="src/12.js"></script><script src="src/13.js"></script>
 </body>
 </html>
