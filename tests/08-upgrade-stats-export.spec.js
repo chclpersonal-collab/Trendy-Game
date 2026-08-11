@@ -24,10 +24,19 @@ test('army stats are paid upgrades and each stat changes its intended gameplay m
   expect(r.reloadAfter).toBeLessThan(r.reloadBefore);expect(r.aimAfter).toBeGreaterThan(r.aimBefore);expect(r.luckBefore).toBe(0);expect(r.luckAfter).toBeGreaterThan(0);expect(r.forcedLucky).toBe(1.5);expect(r.forcedNotLucky).toBe(1);
 });
 
-test('wealthy stable General AI invests surplus in a real training upgrade',async({page})=>{
-  await openGame(page);
-  const r=await page.evaluate(()=>{GameTest.setSeed(36002);const api=__battleSim.test,g=api.generals()[0];g.money=10000;g.stance='ATTACK';g.reserveTarget=80;for(let i=0;i<18;i++)api.buyMusketeer(0,'F');g.money=10000;g.nextStatUpgradeAt=0;const before={...g.stats},chosen=api.tryArmyTraining(0),after={...g.stats};return{chosen,before,after,plan:g.budgetPlan,money:g.money,upgrades:g.statUpgrades,spend:g.statSpend,validation:GameTest.validate()}});
-  expect(r.validation.ok).toBe(true);expect(typeof r.chosen).toBe('string');expect(['Offense','Defense','Stamina','Luck','Skill']).toContain(r.chosen);expect(r.after[r.chosen]).toBe(r.before[r.chosen]+1);expect(r.plan).toBe(`TRAIN ${r.chosen.toUpperCase()}`);expect(r.upgrades).toBe(1);expect(r.spend).toBeGreaterThan(0);
+test('General AI protects early rank ecology then invests surplus after the 900-second maturity gate',async({page})=>{
+  test.setTimeout(50000);await openGame(page);
+  const r=await page.evaluate(()=>{
+    GameTest.setSeed(36002);const api=__battleSim.test,g=api.generals()[0];
+    g.money=10000;g.stance='ATTACK';g.reserveTarget=80;for(let i=0;i<18;i++)api.buyMusketeer(0,'F');g.money=10000;g.nextStatUpgradeAt=0;
+    const early=api.tryArmyTraining(0),earlyState=GameTest.state();
+    GameTest.advance(901);GameTest.forceStance(1,'CONTEST');g.money=10000;g.reserveTarget=80;g.nextStatUpgradeAt=0;
+    const chosen=api.tryArmyTraining(0),after=GameTest.state();
+    return{early,earlyUpgrades:earlyState.statTraining.upgradeCounts[0],maturity:earlyState.statTraining.aiMaturitySeconds,chosen,afterStats:after.armyStats[0],upgrades:after.statTraining.upgradeCounts[0],spend:after.statTraining.spend[0],validation:GameTest.validate()};
+  });
+  expect(r.validation.ok).toBe(true);expect(r.maturity).toBe(900);expect(r.early).toBe(false);expect(r.earlyUpgrades).toBe(0);
+  expect(r.upgrades).toBeGreaterThan(0);expect(r.spend).toBeGreaterThan(0);expect(Object.values(r.afterStats).some(v=>v>1)).toBe(true);
+  if(r.chosen!==false)expect(['Offense','Defense','Stamina','Luck','Skill']).toContain(r.chosen);
 });
 
 test('Export State downloads a complete current-state JSON immediately without advancing the battle',async({page},testInfo)=>{
