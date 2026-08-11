@@ -1,219 +1,194 @@
 # Musketeer Battle Simulator
 
-Autonomous two-army musketeer battle simulation developed on the single rolling branch `agent/current`. Technical completion claims are evidence-gated by the exact deployed Vercel/Playwright build. **Project acceptance convention:** after an update is delivered, no user comments means the update is accepted/good; a separate human-playtest gate is not required.
+Autonomous two-army musketeer battle simulation developed on the rolling `agent/current` branch. Completion claims are evidence-gated by deployed Vercel/Playwright runs. Failed candidates remain recorded rather than being relabeled as successful.
 
 ## Current state
 
-- **Phase 1 / F Class:** STABLE
-- **Phase 2 / E Class:** STABLE
-- **Phase 3 / D foundation:** STABLE
-- **Phase 3 v3.2.1 rank ecology:** STABLE / accepted
-- **Phase 4 / C Class v3.3:** STABLE / accepted
-- **Current gameplay:** Phase 4 **v3.3.1 — Force Factors / Stats Semantics Audit**
-- **Status:** **AUTOMATED VERIFIED CANDIDATE**
-- **Exact verified deployed gameplay/test HEAD:** `fe1315b0e2e9116cfe77d890ffcde3cfb6de07bd`
-- **Protected Playwright run:** `31454787299` — **36/36 passed**
-- **Protected Vercel preview:** `trendy-game-8peh7qs6v-chclpersonal-9731s-projects.vercel.app`
-- **Evidence artifact:** `9087713696`
-- **Evidence SHA256:** `ed3379759feaba52f143625f31866ae2b388c032b1eeddb4011e8e810f55a699`
-- **Post-verification branch integrity:** only `README.md` differs from the verified gameplay/test HEAD; there is no untested gameplay change above it
-- **Army foundation:** 0 starting musketeers; 150-musketeer hard ceiling per side
-- **Adaptive companies:** commanders choose 2–14 soldiers; 11 companies maximum per army
-- **Rank ecology:** F majority / E regular / D rare-visible / C scarce-recurring
-- **Commander Form I / Shii-Cho:** STABLE crowd-oriented baseline
-- **Commander Form II / Makashi:** verified precise anti-commander duel form
-- **B Class:** next isolated soldier-rank candidate after v3.3.1 acceptance
-- **Form III / Soresu:** later, isolated from B Class
+- F Class — **STABLE**
+- E Class — **STABLE**
+- D Class — **STABLE**
+- C Class v3.3 / Volley Drill — **STABLE / accepted**
+- Current development — **v3.4 Army Training / Siege Resolution / Instant State Export**
+- Status — **VERIFICATION IN PROGRESS / NOT YET A RELEASE**
+- Current branch HEAD under verification — `2d1038a96d551e5131f58649750ca50b562e2390`
+- Current protected run — `31461105512`
+- B Class remains deferred until v3.4 is technically resolved.
 
-## Phase 4 v3.3.1 — Force Factors / Stats Semantics Audit
+## Correction: v3.3.1 rejected
 
-### Screenshot-driven stats audit
+The previous v3.3.1 implementation interpreted Offense / Defense / Stamina / Luck / Skill as display-only derived force factors. That interpretation was rejected by the user. The display-only implementation has been removed from the active game and must not be treated as accepted design precedent.
 
-The user-provided v3.3 screenshot at about 1936 simulation seconds showed several reasons the existing raw totals could be misread:
+The intended design is **upgradeable gameplay statistics**, not decorative telemetry.
 
-- Left had **58 troops** versus Right **51**, but Left also had **16 reloading** versus Right **1**. Raw troop count therefore overstated Left's immediately available musket fire.
-- The old **Command 100%** label represented company command authority, not the separate 350-unit local tactical-command relationship used for detailed soldier orders.
-- The elite snapshot was sparse: Left **3 E / 0 D / 0 C** and Right **3 E / 1 D / 0 C**. This is recorded as an observation only; one screenshot is not enough evidence to rebalance the accepted rank ecology.
-- `ATTACK` alongside `HOLD UPKEEP` is not contradictory: Strategy is battlefield posture while the spending plan is an economic decision. The UI now labels the latter **Budget**.
-- The screenshot made the Right Positions value look absent. The deployed regression confirms the DOM maintains both Left and Right position values, including explicit zero; no missing-data bug reproduced.
+## v3.4 — Upgradeable army training
 
-### Minor Update / Telemetry Rework — five force factors
+Each General now owns persistent army-training levels for the current run:
 
-The Forces panel now exposes five **derived 0–100 telemetry factors**. They summarize mechanics that already exist and have **no gameplay effect** themselves.
+- **Offense** — increases outgoing combat damage.
+- **Defense** — reduces incoming combat damage.
+- **Stamina** — reduces musket reload time.
+- **Luck** — adds a bounded real critical-hit chance.
+- **Skill** — increases musket accuracy.
 
-- **Offense:** rank quality + firing readiness + local tactical command
-- **Defense:** health + rank resilience + command authority + actual battlefield cover
-- **Stamina:** health + firing readiness + company cohesion
-- **Skill:** rank / earned XP + local tactical command + company cohesion
-- **Luck:** actual musket hits compared with the simulator's predicted hit probabilities; **50 is neutral**
+All five start at **Level 1**, which is the pre-v3.4 gameplay baseline. Level 1 therefore adds no hidden universal buff.
 
-Luck uses expected accuracy and observed hit results with sample-size shrinkage, so a few early shots do not immediately produce an extreme score. It currently measures musket RNG only rather than melee, fortress-fire, or every random event in the simulation.
+Current tuning candidate:
 
-### UI semantics bug fix / clarification
+- maximum level: **20**
+- first upgrade: **$80**
+- each later purchased training level costs **+$25** over the previous upgrade cost
+- AI training cooldown: **35 seconds**
+- AI training is blocked during the first **900 seconds of a war** so rank procurement/ecology gets priority
+- training spends real treasury and must preserve the General's reserve and surplus buffer
+- Offense: **+2.5% damage / level above 1**, capped at +35%
+- Defense: **-1.5% incoming damage / level above 1**, capped at 25%
+- Stamina: **-0.45s reload / level above 1**, absolute 22s floor
+- Skill: **+0.6 percentage points accuracy / level above 1**, capped at +8pp
+- Luck: **+0.7% critical-hit chance / level above 1**, capped at 12%; critical hit = 1.5× damage
 
-- **Command** → **Authority**
-- added **Local command** as a separate percentage
-- **Uncommanded** → **No authority**
-- **Plan** → **Budget**
-- Offense / Defense / Stamina / Skill / Luck are visible in the Forces section
-- empty-army command percentages display `—` rather than a misleading 100%
+Controlled deployed-browser evidence already proves that paid levels change the intended mechanics. Autonomous long-run purchase behavior remains part of the current endurance gate.
 
-### Preserved gameplay
+## Instant diagnostic export — use this instead of screenshots
 
-The force factors are read-only telemetry. v3.3.1 does not change:
+The top control bar now includes **Export State**.
 
-- hit probability
-- damage
-- reload timing
-- movement
-- rank progression or procurement
-- economy or upkeep
-- company command behavior
-- fortress mechanics
-- C Volley Drill
-- Makashi / Shii-Cho behavior
+**At any point in the game, click `Export State`. You do not need to wait for a special event, a win, a bug, or a certain simulation time.**
 
-### Rejected first v3.3.1 verification
+The browser immediately downloads a file named approximately:
 
-Run `31454418767` finished **35/36**.
+`musketeer-state-v3.4.0-seed-<seed>-war-<war>-t-<seconds>s.json`
 
-- all three new force-factor tests passed
-- C ecology, economy and natural-siege audits passed
-- the sole failure was a legacy UI assertion requiring the badge to equal exactly `v3.3` instead of the correct `v3.3.1`
-- the stale assertion was advanced; no gameplay formula, factor weight, RNG behavior, or acceptance threshold changed
-- rejected-run artifact: `9087599284`
-- rejected-run SHA256: `7e952055b0c51cfc0eb8e9581472c4b730355ad4a202f9beefe8e5479a1093e8`
+Upload that JSON file to ChatGPT when reporting anything unusual. It contains substantially more diagnostic information than a screenshot:
 
-### Final deployed verification
+- exact run seed and current RNG state
+- current simulation time, war number and war age
+- winner state
+- front position and velocity
+- full General AI state
+- strategies, budgets and reserves
+- all five training levels, spend and upgrade history
+- all companies and command states
+- complete current actor/soldier/commander state
+- ranks, HP, reload, XP, facing, panic, rejoin and charge state
+- fortresses and fortress hits
+- contested positions
+- siege/breach state
+- anomaly flags such as a >1800s unresolved war
+- a rolling flight recorder sampled every 10 simulated seconds
 
-Exact run `31454787299` tested Vercel preview `trendy-game-8peh7qs6v-chclpersonal-9731s-projects.vercel.app` at exact gameplay/test HEAD `fe1315b0e2e9116cfe77d890ffcde3cfb6de07bd`.
+The browser-download regression has passed on deployed Vercel at **t=0**, proving the export is immediately available rather than requiring a long play session.
 
-**Result: 36 / 36 Playwright tests passed in about 5.3 minutes.**
+## 2000-second no-win investigation
 
-New v3.3.1 coverage verifies:
+The reported >2000-second unresolved war is treated as a real pacing/AI problem, not something to hide behind passing short tests.
 
-1. all five factors are finite and remain within 0–100
-2. initial Luck is neutral at 50
-3. Authority and Local command are distinct UI/state concepts
-4. both Left and Right Positions values remain present, including explicit zero
-5. a controlled all-reloading force has lower Offense and Stamina than an otherwise comparable ready force
-6. Luck moves above/below 50 when observed musket hits outperform/underperform predicted accuracy
-7. `forceFactorModel.gameplayEffect` remains false
-8. all previous C, E/D ecology, Makashi, command continuity, fieldwork, BREACH, max-150, adaptive-company and UI gates remain green
+### What has been disproved
 
-The long-run economy and siege telemetry reproduced the v3.3 candidate exactly, providing evidence that the factor instrumentation did not perturb simulation RNG or gameplay.
+Simply increasing fortress damage is **not sufficient**. The first v3.4 long-war candidate showed repeated siege pushes while spearheads still failed to convert them into first-war wins.
 
-### Economy audit — 4 × 600 seconds
+### Current siege candidate
 
-Seeds 32101–32104 remained finite and valid with the same v3.3 values:
+- Fortress maximum HP is unchanged: **F 4500 / E 6500**.
+- Ordinary fortress-fire damage remains **6–10**.
+- Commander-organized SIEGE fire candidate: **32–48**.
+- BREACH fire candidate: **70–95**.
+- Mature rational sieges can retain a longer commitment, but normal General strategy may still abort to DEFEND / CONTEST.
 
-- peak living army: **57**
-- peak companies: **10**
-- highest sampled treasury: about **$603.76**
-- maximum instantaneous D share: **12%**
-- three direct C purchases across the eight sampled army-sides
-- no force-factor, treasury, rank, fortress, army-cap, company-cap or finite-value failure
+The current long-war audit uses the same **5-second external stepping cadence** as the established 900-second natural-siege audit after a 25-second stepping variant proved non-comparable for long deterministic trajectories.
 
-### Natural-siege audit — 9 × 900 seconds
+The acceptance gate is intentionally stronger than the old 'fortress damage can happen' test:
 
-Seeds 32201–32209 remained technically valid with the same v3.3 values:
+- seeds `32201`, `32206`, `32207`
+- first war observed up to **2200 simulated seconds**
+- at least **2 of 3 must actually resolve**
+- at least one must resolve by **2000 seconds**
+- all finite/cap/rank/fortress invariants must remain green
+- at least one natural long run must demonstrate autonomous stat training after the 900-second maturity gate
 
-- peak living army: **71**
-- peak companies: **11**
-- only seed **32206** produced fortress damage
-- Left produced **27 fortress hits**
-- Right E fortress: **6500 → about 6278.96 HP**
-- other eight seeds: zero fortress hits
+Until that passes, the long-war fix is **NOT PROVEN**.
 
-The 27-hit seed remains a monitoring observation rather than perfect-balance proof.
+## Failed / blocked evidence retained
 
-## Phase 4 v3.3 — C Class / Volley Drill
+### First v3.4 candidate — REJECTED
 
-C is the fourth unlocked soldier rank and remains directly buyable or earnable in combat.
+Run `31459186669` — **34/38 passed, 4 failed**.
 
-- direct price: **$150**
-- D → C promotion: **18 total XP**
-- progression thresholds: **4 → 10 → 18 XP**
-- every earned XP restores **20 HP**, capped at full health
-- C inherits E autonomous bayonet capability
-- C inherits D Assault Drill
-- C Volley Drill activates only during commander-issued formal `VOLLEY`
-- Volley Drill: **+4.5 percentage points aim**, **2.5 seconds faster reload**, **24.5-second minimum reload**
-- C target shares remain **1.5–2.5%**, with minimum army 24 and a healthy E/D foundation required for direct AI procurement
+Important failures:
+- early AI training suppressed C-Class ecology
+- all three 2200-second first wars remained unresolved
+- one stale v3.3 metadata assertion
+- the old 900-second natural-siege control was perturbed
 
-The intended hierarchy remains **F common → E regular → D rare-visible → C scarce-recurring**.
+Artifact: `9089296483`  
+SHA256: `117369cb730d7319cdea83e216acb6c40675d6d30422aca78d0c49ac4b517444`
+
+### Corrected candidate before harness alignment — PARTIAL / NOT VERIFIED
+
+Run `31460159558` reached GitHub's old **10-minute CI timeout** before finishing the full suite.
+
+Before timeout it proved:
+- v3.3 C ecology was restored exactly by delaying AI training until 900s
+- real stat mechanics passed
+- instant Export State download passed
+- ordinary vs organized fortress-damage tiers passed
+- 4×600 economy remained bounded
+- established 9×900 natural-siege behavior returned, including seed `32206` with 27 fortress hits
+
+But its 25-second-chunk long-war test still reported all three wars unresolved, so v3.4 was not accepted.
+
+Artifact: `9089672670`  
+SHA256: `5783855d540d19c676610144c38593bbae462dc70d1ca3850ee408253d3eddf7`
+
+The workflow timeout has been raised **10 → 15 minutes** only so the expanded endurance verification can finish; gameplay acceptance thresholds were not changed.
 
 ## Core gameplay invariants
 
-- fresh war: **0 musketeers per side**
-- maximum: **150 musketeers per army**
-- commanders are separate from the 150-musketeer count
-- commander/company target: **2–14 soldiers**
-- hard company maximum: **14 living musketeers**
-- hard army company maximum: **11**
-- prices: **F $10 / E $32 / D $80 / C $150**
-- passive income: **$10/s**
-- bounty: **50% of defeated musketeer rank price**
-- living-army upkeep: **1.60% of army value/s**
-- musket base reload: **30 seconds**
-- F/E veteran minimum reload: **27 seconds**
-- D Assault Drill minimum: **25 seconds** under established assault orders
-- C Volley Drill minimum: **24.5 seconds** during formal VOLLEY only
-- F→E: **4 XP**
-- E→D: **10 XP**
-- D→C: **18 XP**
-- each earned XP restores **20 HP**, capped at full health
-- currently unlocked soldier ranks: **F / E / D / C only**
-- soldier tactical-command radius: **350**
-- tight commander/company proximity metric: **180**
-- soldier rejoin completion radius: **285**
-- replacement commanders join physically
-- fieldwork controls paid reinforcement and is not a forward spawn
-- commander forms currently unlocked: **I Shii-Cho / II Makashi**
-- exact 15-phase class roadmap remains intact
-
-## Branch policy
-
-- `main` — accepted/stable baseline
-- `agent/current` — the only active development branch
-
-Do not create version-specific development branches. Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs remain obsolete cleanup refs and do not drive CI.
+- new war starts with **0 musketeers per side**
+- maximum **150 musketeers per army**; commanders are separate
+- maximum **14 soldiers/company**, **11 companies/army**, adaptive target **2–14**
+- F / E / D / C prices: **$10 / $32 / $80 / $150**
+- passive income **$10/s**, bounty **50%**, upkeep **1.60% of living army value/s**
+- base musket reload **30s**
+- F→E **4 XP**, E→D **10 XP**, D→C **18 XP**
+- each earned XP restores **20 HP**, capped at full HP
+- E autonomous bayonet identity preserved
+- D Assault Drill preserved
+- C formal Volley Drill preserved
+- command authority / local tactical command remain separate
+- local tactical-command radius **350**, tight company proximity **180**, rejoin completion **285**
+- paid troops still spawn at their fortress; fieldwork remains a logistics gate, not a forward spawn
+- Commander Forms I Shii-Cho and II Makashi remain unlocked; no projectile deflection
+- 15-phase class roadmap remains intact
 
 ## Roadmap
 
-1. **F Class — STABLE**
-2. **E Class — STABLE**
-3. **D Class — STABLE**
-4. **C Class — STABLE**
-5. **B Class — NEXT CLASS**
-6. A Class
-7. S Class
-8. SS Class
-9. SSS Class
-10. SSS+ Class
-11. SSS+ Class Type I
-12. SSS+ Class Type II
-13. SSS+ Class Type III
-14. SSS+ Class Type IV
-15. SSS+ Class Type V — final
+1. F — **STABLE**
+2. E — **STABLE**
+3. D — **STABLE**
+4. C — **STABLE**
+5. B — **NEXT CLASS after v3.4 stabilization**
+6. A
+7. S
+8. SS
+9. SSS
+10. SSS+
+11. SSS+ Type I
+12. SSS+ Type II
+13. SSS+ Type III
+14. SSS+ Type IV
+15. SSS+ Type V
 
-### Near-term roadmap
+Near term:
 
-- **DONE:** v3.1.1 Command Continuity / Coordinated Withdrawal
-- **DONE:** battle-first frontend rework
-- **DONE:** v3.2 Form II Makashi + tactical combat continuity
-- **DONE / STABLE:** v3.2.1 rank ecology + Elite Siege Discipline
-- **DONE / STABLE:** v3.3 C Class / Volley Drill
-- **NOW:** v3.3.1 Force Factors / Stats Semantics Audit — automated verified candidate
-- **NEXT:** B Class as its own isolated soldier-rank slice after v3.3.1 acceptance
-- **LATER:** Form III — **Soresu**, isolated from B Class
-- **MONITOR:** the 27-hit seed32206 siege observation without weakening fieldwork logistics or the natural-siege gate
-- **MONITOR:** elite sparsity from user screenshots across repeated observations before changing the accepted ecology
-- preserve healthy future rank ecology: every unlocked rank remains directly buyable and earnable; avoid exponential XP/price growth that makes high ranks practically absent
+- **NOW:** finish v3.4 endurance verification and diagnose any remaining no-win mechanism from the downloadable state/flight-recorder evidence
+- **NEXT:** B Class only after v3.4 is technically accepted
+- **LATER:** Form III Soresu as an isolated commander-form update
+- **MONITOR:** future high-rank ecology so later ranks remain rare but actually present, directly purchasable and earnable
 
-## Verification / acceptance policy
+## Verification policy
 
-- Failed experiments stay failed in the evidence; acceptance tests are not weakened to make a candidate pass.
-- Automated browser evidence proves only the scenarios it actually tests.
-- Automated technical failures block advancement.
-- After a technically verified update is delivered, **no user comments means accepted/good**.
+- A green short test does not override a failed long-war gate.
+- A failed candidate remains failed.
+- Tests are not weakened to manufacture a release.
+- Deployed-browser evidence proves only the scenarios actually exercised.
+- No-comments acceptance applies only after a technically verified update is delivered.
