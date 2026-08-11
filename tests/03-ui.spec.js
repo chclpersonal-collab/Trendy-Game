@@ -10,17 +10,19 @@ async function openGame(page){
 test('primary game UI is battle-first and development chrome is removed',async({page},testInfo)=>{
   await openGame(page);
   await expect(page.locator('header .title')).toHaveText('Musketeer Battle Simulator');
-  await expect(page.locator('header .version')).toHaveText('v3.2.1');
+  await expect(page.locator('header .version')).toHaveText('v3.3');
   await expect(page.locator('.card')).toHaveCount(0);
   await expect(page.getByText('Phase 3 Rules',{exact:true})).toHaveCount(0);
   await expect(page.getByText('Commander Forms',{exact:true})).toHaveCount(0);
   await expect(page.getByText('Roadmap',{exact:true})).toHaveCount(0);
   await expect(page.getByText('General AIs',{exact:true})).toHaveCount(0);
   await expect(page.locator('#moneyStat [data-side]')).toHaveCount(2);
+  await expect(page.locator('#cclassStat [data-side]')).toHaveCount(2);
   await expect(page.locator('#details')).not.toHaveAttribute('open','');
   await expect(page.locator('#pricingStat')).not.toBeVisible();
   await page.locator('#details summary').click();
   await expect(page.locator('#pricingStat')).toBeVisible();
+  await expect(page.locator('#cPromotionsStat')).toBeVisible();
   const p=testInfo.outputPath('ui-clean-desktop.png');
   await page.screenshot({path:p,fullPage:true});
   await testInfo.attach('ui-clean-desktop.png',{path:p,contentType:'image/png'});
