@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('v3.3 C Class preserves rank ecology, Makashi, and command continuity metadata',async({page})=>{
+test('v3.3.1 force factors preserve C Class, rank ecology, Makashi, and command continuity metadata',async({page})=>{
   const response=await page.goto('/',{waitUntil:'domcontentloaded',timeout:30000});
   expect(response).not.toBeNull();expect(response.status()).toBeLessThan(400);
   await page.waitForFunction(()=>Boolean(window.GameTest&&window.__battleSim),null,{timeout:15000});
@@ -8,7 +8,7 @@ test('v3.3 C Class preserves rank ecology, Makashi, and command continuity metad
   const r=await page.evaluate(()=>{GameTest.setSeed(35000);return GameTest.state()});
   expect(r.version).toBe('3.3');
   expect(r.phase).toBe(4);
-  expect(r.patchVersion).toBe('3.3.0');
+  expect(r.patchVersion).toBe('3.3.1');
   expect(r.rework).toBe('c-class-volley-drill');
   expect(r.classProgression.ePromotionXP).toBe(4);
   expect(r.classProgression.dPromotionXP).toBe(10);
@@ -26,6 +26,8 @@ test('v3.3 C Class preserves rank ecology, Makashi, and command continuity metad
   expect(r.command.combatContinuity.crossLaneAwareness.requiresLocalCommand).toBe(true);
   expect(r.command.lightsaberForm.unlocked).toEqual(['I Shii-Cho','II Makashi']);
   expect(r.command.lightsaberForm.formII.projectileDeflection).toBe(false);
-  expect(await page.title()).toContain('Phase 4 v3.3');
-  expect(await page.locator('.version').textContent()).toContain('v3.3');
+  expect(r.forceFactorModel.gameplayEffect).toBe(false);
+  expect(r.forceFactorModel.luck).toContain('50 neutral');
+  expect(await page.title()).toContain('Phase 4 v3.3.1');
+  expect(await page.locator('.version').textContent()).toContain('v3.3.1');
 });
