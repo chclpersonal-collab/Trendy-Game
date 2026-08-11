@@ -1,0 +1,49 @@
+'use strict';
+// Phase 4 v3.4.1 — Understrength Company Reform.
+// Long-run evidence showed 13 of 21 companies stuck on RALLY at 2199s while both fortresses remained untouched.
+// This patch fixes reinforcement starvation and lets commanders consolidate depleted companies without creating troops.
+const V341_REFORM_START=900,V341_REFORM_INTERVAL=20,V341_MAX_MERGES_PER_CYCLE=3;
+const v341NextReform=[0,0],companyConsolidations=[0,0],soldiersConsolidated=[0,0],reserveReactivations=[0,0];
+
+function companyReadyDeficit(c){const n=companyLoad(c),ready=companyRebuildThresholds(c).ready;return Math.max(0,ready-n)}
+function companyFillRatio(c){return companyLoad(c)/Math.max(1,c?.targetSize||MAX_PER_COMMANDER)}
+function companyNeedsReform(c){if(!c||c.reserve)return false;const n=companyLoad(c);if(n<=0)return false;const thresholds=companyRebuildThresholds(c);return !!c.rebuilding||n<=thresholds.low}
+function nextFreeCompanySlot(team,c){const used=new Set(companyMusketeers(team,c.id).map(a=>a.slot));for(let slot=0;slot<MAX_PER_COMMANDER;slot++)if(!used.has(slot))return slot;return-1}
+function transferSoldierToCompany(a,target){if(!a||!a.alive||a.isCommander||!target||a.team!==target.team||companyLoad(target)>=target.targetSize)return false;const slot=nextFreeCompanySlot(a.team,target);if(slot<0)return false;a.company=target.id;a.slot=slot;a.rejoining=false;a.chargeTimer=0;a.chargeTarget=0;a.rearEngaged=false;a.panic=0;return true}
+function placeCompanyInReserve(team,c){if(!c||companyLoad(c)>0)return false;const g=generals[team];c.reserve=true;c.rebuilding=false;c.command='RESERVE';c.commandTimer=.5;c.targetX=fortresses[team].x+(team===0?1:-1)*80;c.volleyTimer=0;c.counterChargeTimer=0;c.braceTimer=0;if(g.breachCompanyId===c.id){g.breachCompanyId=-1;g.breachBestDistance=Infinity;g.breachProgressGrace=0}return true}
+function reactivateReserveCompany(team,c){if(!c||!c.reserve)return false;const g=generals[team];c.reserve=false;c.targetSize=chooseCompanyTargetSize(team);c.sizeChanges=(c.sizeChanges||0)+1;c.rebuilding=false;c.command='ADVANCE';c.commandTimer=.01;c.targetX=g.targetX;c.volleyTimer=0;c.counterChargeTimer=0;c.braceTimer=0;reserveReactivations[team]++;return true}
+function consolidationTargetSort(team,a,b){const breach=generals[team].breachCompanyId,ab=a.id===breach?0:1,bb=b.id===breach?0:1;if(ab!==bb)return ab-bb;const ad=companyReadyDeficit(a),bd=companyReadyDeficit(b);if(ad!==bd)return ad-bd;const al=companyLoad(a),bl=companyLoad(b);return bl-al||a.id-b.id}
+function consolidationDonorSort(a,b){const al=companyLoad(a),bl=companyLoad(b);if(al!==bl)return al-bl;const ad=companyReadyDeficit(a),bd=companyReadyDeficit(b);return bd-ad||b.id-a.id}
+function consolidateUnderstrengthCompanies(team,force=false){const g=generals[team];if(!force){if(warWinner!==-1||currentWarAge()<V341_REFORM_START||simTime<v341NextReform[team])return{merges:0,moved:0};v341NextReform[team]=simTime+V341_REFORM_INTERVAL}let merges=0,moved=0;for(let cycle=0;cycle<V341_MAX_MERGES_PER_CYCLE;cycle++){const candidates=g.companies.filter(companyNeedsReform);if(candidates.length<2)break;candidates.sort((a,b)=>consolidationTargetSort(team,a,b));const target=candidates[0];let donors=candidates.filter(c=>c.id!==target.id&&c.id!==g.breachCompanyId);if(!donors.length)donors=candidates.filter(c=>c.id!==target.id);donors.sort(consolidationDonorSort);const donor=donors[0],capacity=Math.max(0,target.targetSize-companyLoad(target));if(!donor||capacity<=0){target.rebuilding=false;continue}const donorMen=companyMusketeers(team,donor.id).sort((a,b)=>rankScoreOf(b)-rankScoreOf(a)||b.xp-a.xp||a.id-b.id),count=Math.min(capacity,donorMen.length);let movedNow=0;for(let i=0;i<count;i++)if(transferSoldierToCompany(donorMen[i],target))movedNow++;if(!movedNow)break;moved+=movedNow;merges++;const targetThresholds=companyRebuildThresholds(target);target.rebuilding=companyLoad(target)<targetThresholds.ready;if(companyLoad(donor)===0)placeCompanyInReserve(team,donor);else donor.rebuilding=true}if(merges){companyConsolidations[team]+=merges;soldiersConsolidated[team]+=moved}return{merges,moved}}
+
+// Reinforcements first complete the closest-to-ready rebuilding company instead of repeatedly feeding C1/C2
+// while later companies remain permanently understrength. Empty consolidated companies are reused only after
+// every active company has reached its chosen target size.
+const v34CompanyWithRoom=companyWithRoom;
+companyWithRoom=function(team){const g=generals[team];if(activeMusketeers(team).length>=MAX_MUSKETEERS)return null;const active=g.companies.filter(c=>!c.reserve&&companyLoad(c)<c.targetSize);if(active.length){active.sort((a,b)=>{const ar=a.rebuilding?0:1,br=b.rebuilding?0:1;if(ar!==br)return ar-br;if(!ar){const ab=a.id===g.breachCompanyId?0:1,bb=b.id===g.breachCompanyId?0:1;if(ab!==bb)return ab-bb;const ad=companyReadyDeficit(a),bd=companyReadyDeficit(b);if(ad!==bd)return ad-bd}const af=companyFillRatio(a),bf=companyFillRatio(b);return af-bf||a.id-b.id});return active[0]}const reserve=g.companies.find(c=>c.reserve);if(reserve){reactivateReserveCompany(team,reserve);return reserve}return v34CompanyWithRoom(team)};
+
+const v34UpdateCompanyCommand=updateCompanyCommand;
+updateCompanyCommand=function(team,c,dt){if(c?.reserve&&companyLoad(c)===0){c.command='RESERVE';c.targetX=fortresses[team].x+(team===0?1:-1)*80;c.volleyTimer=0;c.counterChargeTimer=0;c.braceTimer=0;return}if(c?.reserve)c.reserve=false;return v34UpdateCompanyCommand(team,c,dt)};
+const v34UpdateCommander=updateCommander;
+updateCommander=function(a,dt){const c=companyFor(a.team,a.company);if(c?.reserve&&companyLoad(c)===0){const dir=a.team===0?1:-1,homeX=fortresses[a.team].x+dir*80,homeY=formationY(a);faceToward(a,homeX);a.x=approachValue(a.x,homeX,COMMANDER_RETURN_SPEED,dt);a.y=approachValue(a.y,homeY,COMMANDER_Y_SPEED,dt);a.x=Math.max(28,Math.min(W-28,a.x));a.y=Math.max(32,Math.min(H-32,a.y));return}return v34UpdateCommander(a,dt)};
+const v34GeneralDecisionForV341=generalDecision;
+generalDecision=function(team){const reform=consolidateUnderstrengthCompanies(team,false),out=v34GeneralDecisionForV341(team);if(reform.merges)generals[team].lastCompanyReform={time:+simTime.toFixed(2),war:warNumber,merges:reform.merges,moved:reform.moved};return out};
+
+const v34ResetWarForV341=resetWar;
+resetWar=function(preserve=true){const out=v34ResetWarForV341(preserve);for(let t=0;t<2;t++){v341NextReform[t]=simTime+V341_REFORM_START;for(const c of generals[t].companies)c.reserve=false}if(!preserve){companyConsolidations[0]=companyConsolidations[1]=0;soldiersConsolidated[0]=soldiersConsolidated[1]=0;reserveReactivations[0]=reserveReactivations[1]=0}return out};
+const v34ResetForV341=reset;
+reset=function(fixedSeed=null){const out=v34ResetForV341(fixedSeed);for(let t=0;t<2;t++)v341NextReform[t]=simTime+V341_REFORM_START;updateUI();return out};
+window.__battleSim.reset=reset;document.getElementById('restartBtn').onclick=()=>reset();
+
+const v34StateForV341=window.__battleSim.state;
+window.__battleSim.state=()=>{const state=v34StateForV341();state.baseRework=state.rework;state.patchVersion='3.4.1';state.rework='understrength-company-reform';state.companyReform={startsAt:V341_REFORM_START,interval:V341_REFORM_INTERVAL,maxMergesPerCycle:V341_MAX_MERGES_PER_CYCLE,priority:'reinforce closest-to-ready rebuilding company; consolidate depleted companies; reuse empty reserve commands only after active companies fill',consolidations:[...companyConsolidations],soldiersTransferred:[...soldiersConsolidated],reserveReactivations:[...reserveReactivations],activeCompanies:generals.map(g=>g.companies.filter(c=>!c.reserve&&companyLoad(c)>0).length),rebuildingCompanies:generals.map(g=>g.companies.filter(c=>!c.reserve&&companyNeedsReform(c)).length),reserveCompanies:generals.map(g=>g.companies.filter(c=>c.reserve).length),lastReform:generals.map(g=>g.lastCompanyReform||null)};state.companies.forEach((side,t)=>side.forEach(c=>{const actual=companyFor(t,c.id);c.reserve=!!actual?.reserve;c.readyDeficit=actual?companyReadyDeficit(actual):0}));state.siegeResolution.companyReformPreventsPermanentRallyFragmentation=true;return state};
+const v34ValidateForV341=window.GameTest.validate;
+window.GameTest.validate=()=>{const v=v34ValidateForV341(),reserveWithMen=generals.some(g=>g.companies.some(c=>c.reserve&&companyLoad(c)>0)),duplicateCompanySlots=generals.some(g=>g.companies.some(c=>{const slots=companyMusketeers(g.team,c.id).map(a=>a.slot);return new Set(slots).size!==slots.length}));return{...v,reserveWithMen,duplicateCompanySlots,ok:v.ok&&!reserveWithMen&&!duplicateCompanySlots,patchVersion:'3.4.1'}};
+
+const v34DiagnosticPayloadForV341=currentDiagnosticPayload;
+currentDiagnosticPayload=function(){const payload=v34DiagnosticPayloadForV341();payload.version='3.4.1';payload.state=window.__battleSim.state();payload.companyReform=payload.state.companyReform;return payload};
+exportCurrentState=function(){const payload=currentDiagnosticPayload(),t=Math.floor(simTime),name=`musketeer-state-v3.4.1-seed-${seed>>>0}-war-${warNumber}-t-${t}s.json`;downloadJson(name,payload);return payload};
+Object.assign(window.__battleSim.test,{companyWithRoom,companyReadyDeficit,companyNeedsReform,transferSoldierToCompany,placeCompanyInReserve,reactivateReserveCompany,consolidateUnderstrengthCompanies,updateCompanyCommand,updateCommander,generalDecision,reset,resetWar});
+window.__battleSim.exportState=exportCurrentState;window.__battleSim.diagnosticPayload=currentDiagnosticPayload;window.GameTest.state=()=>window.__battleSim.state();window.GameTest.exportPayload=currentDiagnosticPayload;
+const exportBtnV341=document.getElementById('exportStateBtn');if(exportBtnV341)exportBtnV341.onclick=exportCurrentState;
+document.title='Musketeer Battle Simulator — Phase 4 v3.4.1';const v341Badge=document.querySelector('.version');if(v341Badge)v341Badge.textContent='v3.4.1';
