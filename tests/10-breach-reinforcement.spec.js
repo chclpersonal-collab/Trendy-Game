@@ -5,26 +5,19 @@ async function openGame(page){
   await page.waitForFunction(()=>Boolean(window.GameTest&&window.__battleSim),null,{timeout:15000});const pause=page.locator('#pauseBtn');if((await pause.textContent())?.trim()==='Pause')await pause.click();
 }
 
-test('new purchases reinforce the active BREACH before depleted rear companies without transferring live soldiers',async({page})=>{
+test('depleted leading BREACH keeps continuity until a healthy company clearly overtakes it',async({page})=>{
   await openGame(page);
   const r=await page.evaluate(()=>{
-    GameTest.setSeed(34110);const api=__battleSim.test,g=api.generals()[0],actors=api.actors(),companies=api.companies()[0],livingIn=id=>actors.filter(a=>a.alive&&a.team===0&&!a.isCommander&&a.company===id);
-    g.money=2000;g.reserveTarget=80;
-    const breach=companies[0];for(const a of livingIn(breach.id).slice(6))api.killActor(a,null,'test');breach.targetSize=6;while(livingIn(breach.id).length<6)api.buyMusketeer(0,'F',true);
-    const rear=api.createCompany(0,14);for(const c of companies)if(c.id!==rear.id)c.targetSize=Math.max(2,livingIn(c.id).length);api.buyMusketeer(0,'F',true);
-    const before=livingIn(breach.id).concat(livingIn(rear.id)).map(a=>({id:a.id,company:a.company,x:a.x,y:a.y})),rearBefore=livingIn(rear.id).length;
-    g.stance='SIEGE';g.siegeCommit=420;g.targetX=2756;g.breachCompanyId=breach.id;breach.command='BREACH';breach.targetSize=livingIn(breach.id).length;
-    const recruit=api.buyMusketeer(0,'F'),afterExisting=before.map(x=>{const a=actors.find(v=>v.id===x.id);return{id:x.id,sameCompany:a.company===x.company,sameX:a.x===x.x,sameY:a.y===x.y}}),state=GameTest.state();
-    return{recruitCompany:recruit?.company??null,breachId:breach.id,breachMen:livingIn(breach.id).length,breachTarget:breach.targetSize,rearMen:livingIn(rear.id).length,rearBefore,existingUnchanged:afterExisting.every(x=>x.sameCompany&&x.sameX&&x.sameY),patchVersion:state.patchVersion,policy:state.siegeResolution.breachReinforcement,validation:GameTest.validate()}
+    GameTest.setSeed(34210);const api=__battleSim.test,g=api.generals()[0],actors=api.actors(),companies=api.companies()[0],living=id=>actors.filter(a=>a.alive&&a.team===0&&!a.isCommander&&a.company===id),place=(c,x)=>{for(const a of living(c.id))a.x=x+(a.slot||0)*.25;const cmd=actors.find(a=>a.alive&&a.team===0&&a.isCommander&&a.company===c.id);cmd.x=x-24;cmd.joinedCommand=true};
+    g.money=5000;const lead=companies[0];lead.targetSize=6;for(let i=0;i<6;i++)api.buyMusketeer(0,'F',true);const challenger=api.createCompany(0,6);for(let i=0;i<6;i++)api.buyMusketeer(0,'F',true);g.stance='SIEGE';g.siegeCommit=420;g.breachCompanyId=lead.id;lead.command='BREACH';challenger.command='SIEGE';place(lead,1500);place(challenger,1550);for(const a of living(lead.id).slice(4))api.killActor(a,null,'test');const before=actors.filter(a=>a.alive).map(a=>({id:a.id,company:a.company,x:a.x,y:a.y})),assignmentsBefore=GameTest.state().breachAssignments[0],retained=api.siegeSpearhead(0);const afterRetain=actors.filter(a=>a.alive).map(a=>({id:a.id,company:a.company,x:a.x,y:a.y}));place(challenger,1700);const handed=api.siegeSpearhead(0),state=GameTest.state(),unchanged=before.every(x=>{const a=afterRetain.find(v=>v.id===x.id);return a&&a.company===x.company&&a.x===x.x&&a.y===x.y});return{lead:lead.id,challenger:challenger.id,leadMen:living(lead.id).length,retained:retained?.id??null,handed:handed?.id??null,assignmentsBefore,assignmentsAfter:state.breachAssignments[0],unchanged,policy:state.siegeResolution.breachContinuityCandidate,validation:GameTest.validate()}
   });
-  expect(r.validation.ok).toBe(true);expect(r.recruitCompany).toBe(r.breachId);expect(r.breachMen).toBe(7);expect(r.breachTarget).toBe(7);expect(r.rearMen).toBe(r.rearBefore);expect(r.existingUnchanged).toBe(true);expect(r.patchVersion).toBe('3.4.1');expect(r.policy).toMatchObject({targetSize:12,priorityAppliesToAllNewPurchases:true,independentTopOffRank:'F',newRecruitsOnly:true,transfersExistingSoldiers:false,trainingDeferredWhileNeeded:true});
+  expect(r.validation.ok).toBe(true);expect(r.leadMen).toBe(4);expect(r.retained).toBe(r.lead);expect(r.handed).toBe(r.challenger);expect(r.assignmentsAfter).toBe(r.assignmentsBefore+1);expect(r.unchanged).toBe(true);expect(r.policy).toMatchObject({selectionMinimum:6,retentionMinimum:3,handoffLead:120,requiresActiveCommand:true,movesExistingSoldiers:false,routesNewRecruits:false,fieldworkBlockMinimumUnchanged:true});
 });
 
-test('non-siege recruitment keeps the established first-understrength-company behavior',async({page})=>{
+test('continuity does not let a sub-six spearhead enforce the fieldwork muster blockade',async({page})=>{
   await openGame(page);
   const r=await page.evaluate(()=>{
-    GameTest.setSeed(34111);const api=__battleSim.test,g=api.generals()[0],actors=api.actors(),companies=api.companies()[0],livingIn=id=>actors.filter(a=>a.alive&&a.team===0&&!a.isCommander&&a.company===id);
-    g.money=2000;const first=companies[0];first.targetSize=Math.max(2,livingIn(first.id).length);while(livingIn(first.id).length<first.targetSize)api.buyMusketeer(0,'F',true);const rear=api.createCompany(0,8);g.stance='CONTEST';const a=api.buyMusketeer(0,'F');return{company:a?.company??null,rear:rear.id,validation:GameTest.validate()}
+    GameTest.setSeed(34211);const api=__battleSim.test,g=api.generals()[0],actors=api.actors(),c=api.companies()[0][0];g.money=1000;c.targetSize=6;for(let i=0;i<6;i++)api.buyMusketeer(0,'F',true);g.stance='SIEGE';g.siegeCommit=420;g.breachCompanyId=c.id;c.command='BREACH';const men=actors.filter(a=>a.alive&&a.team===0&&!a.isCommander&&a.company===c.id);for(const a of men.slice(4))api.killActor(a,null,'test');for(const a of actors.filter(a=>a.alive&&a.team===0&&a.company===c.id))a.x=2000;const retained=api.siegeSpearhead(0);return{retained:retained?.id??null,men:actors.filter(a=>a.alive&&a.team===0&&!a.isCommander&&a.company===c.id).length,blocked:api.fieldworkMusterBlocked(1),validation:GameTest.validate()}
   });
-  expect(r.validation.ok).toBe(true);expect(r.company).toBe(r.rear);
+  expect(r.validation.ok).toBe(true);expect(r.men).toBe(4);expect(r.retained).toBe(0);expect(r.blocked).toBe(false);
 });
