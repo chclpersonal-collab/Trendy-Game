@@ -15,3 +15,18 @@ updateUI=function(){v350UpdateUI();ensureV35ResourceUI();const r=[v35ArmyResourc
 const v350State=window.__battleSim.state;
 window.__battleSim.state=()=>{const state=v350State();state.rankSystem.purchaseLockEnforced=true;state.rankSystem.highestUnlocked=PURCHASABLE_RANKS[PURCHASABLE_RANKS.length-1];state.rankSystem.liveResources=[v35ArmyResources(0),v35ArmyResources(1)];return state};
 Object.assign(window.__battleSim.test,{buyMusketeer,rankLabelXP,v35ArmyResources});window.GameTest.state=()=>window.__battleSim.state();ensureV35ResourceUI();updateUI();
+
+// v3.5 verification hardening: make range a real hard limit and keep healing telemetry honest.
+const v351AwardKill=awardKill;
+awardKill=function(killer,victim,method='musket'){
+ if(!killer||killer.isCommander)return v351AwardKill(killer,victim,method);
+ ensureRankVitals(killer,false);const beforeHp=killer.hp,beforeProfile=rankProfileOf(killer),healingBefore=healingDone[killer.team],out=v351AwardKill(killer,victim,method),afterProfile=rankProfileOf(killer),promotionHpGrant=Math.max(0,afterProfile.hp-beforeProfile.hp),actualXpHeal=Math.max(0,Math.min(XP_HEAL,killer.hp-beforeHp-promotionHpGrant));
+ healingDone[killer.team]=healingBefore+actualXpHeal;return out
+};
+const v351Fire=fire;
+fire=function(a,target,d,volley=false){if(a&&!a.isCommander&&Number.isFinite(d)&&d>rankRangeOf(a)+1e-9)return false;return v351Fire(a,target,d,volley)};
+const v351FireFortress=fireFortress;
+fireFortress=function(a,fort,d){if(a&&!a.isCommander&&Number.isFinite(d)&&d>rankRangeOf(a)+1e-9)return false;return v351FireFortress(a,fort,d)};
+const v351State=window.__battleSim.state;
+window.__battleSim.state=()=>{const state=v351State();state.rankSystem.rangeHardLimitEnforced=true;state.rankSystem.healingTelemetryExcludesPromotionCapacity=true;state.rankSystem.veteranLabelsUseUnlockedRanksOnly=true;return state};
+Object.assign(window.__battleSim.test,{awardKill,fire,fireFortress,rankLabelXP});window.GameTest.state=()=>window.__battleSim.state();

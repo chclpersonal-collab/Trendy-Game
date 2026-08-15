@@ -30,7 +30,7 @@ test('C Volley Drill is formal-volley-only and does not become a passive univers
     const c=api.buyMusketeer(0,'C'),enemy=api.buyMusketeer(1,'F');c.x=1400;c.y=300;enemy.x=1520;enemy.y=300;
     const ordinaryReload=api.musketReloadTime(c),ordinaryAim=api.shotAccuracy(c,enemy,120),ordinaryActive=api.cVolleyDrillActive(c);
     c.cVolleyDrill=true;const volleyReload=api.musketReloadTime(c),volleyAim=api.shotAccuracy(c,enemy,120),volleyActive=api.cVolleyDrillActive(c);c.cVolleyDrill=false;
-    c.reload=0;enemy.hp=1000;const manaBefore=c.mana;api.fire(c,enemy,120,true);const firedVolleyReload=c.reload,manaAfter=c.mana;
+    c.reload=0;enemy.hp=enemy.maxHp;const manaBefore=c.mana;api.fire(c,enemy,120,true);const firedVolleyReload=c.reload,manaAfter=c.mana;
     return{ordinaryReload,ordinaryAim,ordinaryActive,volleyReload,volleyAim,volleyActive,firedVolleyReload,manaBefore,manaAfter,rankAtLeastD:api.rankAtLeast(c,'D'),state:GameTest.state(),validation:GameTest.validate()};
   });
   expect(r.validation.ok).toBe(true);expect(r.ordinaryActive).toBe(false);expect(r.volleyActive).toBe(true);expect(r.volleyAim-r.ordinaryAim).toBeCloseTo(.045,8);expect(r.ordinaryReload-r.volleyReload).toBeCloseTo(2.5,8);expect(r.firedVolleyReload).toBeCloseTo(r.volleyReload,8);expect(r.manaBefore-r.manaAfter).toBe(3);expect(r.rankAtLeastD).toBe(true);expect(r.state.classProgression.cClass.volleyDrill.order).toBe('VOLLEY');expect(r.state.classProgression.cClass.ordinaryVeteranBaseline).toContain('D-equivalent');
