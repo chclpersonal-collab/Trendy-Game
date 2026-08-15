@@ -1,209 +1,172 @@
 # Musketeer Battle Simulator
 
-Autonomous two-army musketeer battle simulation developed on the single rolling branch `agent/current`. Technical completion claims are evidence-gated by the exact deployed Vercel/Playwright build. **Project acceptance convention:** after an update is delivered, no user comments means the update is accepted/good; a separate human-playtest gate is not required.
+Autonomous two-army musketeer battle simulation developed on the rolling `agent/current` branch. Completion claims are evidence-gated by deployed Vercel/Playwright runs. Failed candidates remain recorded and are reverted when they regress protected behavior.
 
 ## Current state
 
-- **Phase 1 / F Class:** STABLE
-- **Phase 2 / E Class:** STABLE
-- **Current gameplay:** Phase 3 **v3.1.1 — Command Continuity / Coordinated Withdrawal**
-- **Current frontend:** battle-first interface rework, verified
-- **Status:** **AUTOMATED VERIFIED CANDIDATE**
-- **Exact verified deployed HEAD:** `910ce709bd3c2505005e32e8bbdd8db7fdc34896`
-- **Protected Playwright run:** `31365761574` — **22/22 passed**
-- **Protected Vercel preview:** `trendy-game-5l9jf5iof-chclpersonal-9731s-projects.vercel.app`
-- **Evidence artifact:** `9054170465`
-- **Army foundation:** 0 starting musketeers; 150-musketeer hard ceiling per side
-- **Adaptive companies:** commanders choose 2–14 soldiers; 11 companies maximum per army
-- **Commander Form I / Shii-Cho:** STABLE
-- **Form II / Makashi:** next isolated commander-form candidate
+- F Class — **STABLE**
+- E Class — **STABLE**
+- D Class — **STABLE**
+- C Class v3.3 / Volley Drill — **STABLE / accepted**
+- Current development — **v3.4 Army Training / Siege Resolution / Instant State Export**
+- Status — **PARTIAL CHECKPOINT / NOT YET A RELEASE**
+- Active branch HEAD — `f1be4fc82c653bf9cd98ef03a9ccd4127a031ba1`
+- Active file tree is identical to the safer pre-experiment checkpoint `fa7b2729c964da04cf3745c85f5188addb12fc2f`; exact gameplay/test files match candidate `2d1038a96d551e5131f58649750ca50b562e2390`.
+- Re-verification run after the explicit revert — `31480124358` (**in progress at checkpoint time**).
+- B Class remains deferred until v3.4 is technically resolved.
 
-## Frontend rework — battle first
+## Correction: display-only stats rejected
 
-The game screen was audited specifically for generic AI-generated interface patterns and simplified without changing simulation behavior.
+The old v3.3.1 interpretation of Offense / Defense / Stamina / Luck / Skill as read-only telemetry was rejected. The active game uses **upgradeable gameplay statistics**:
 
-### Rework — information hierarchy
+- **Offense** increases outgoing damage.
+- **Defense** reduces incoming damage.
+- **Stamina** reduces musket reload time.
+- **Luck** adds a bounded real critical-hit chance.
+- **Skill** increases musket accuracy.
 
-The battlefield is the primary surface. The right-side information rail now keeps only live battle information immediately visible:
+All five begin at **Level 1**, the pre-v3.4 baseline, so the system does not silently buff everyone merely by existing.
 
-- troops
-- commanders
-- treasury
-- fortress HP
-- kills
-- current strategy and plan
-- front momentum and held positions
-- command integrity
-- uncommanded troops
-- E/D class counts
-- reloading troops
-- fortress hits
-- wars won
+Current candidate values:
 
-The old player-facing development material was removed from the game screen:
+- level cap **20**
+- first upgrade **$80**, then **+$25** per purchased level
+- AI training cooldown **35s**
+- AI training begins only after **900s of the current war**, preserving early rank ecology
+- Offense **+2.5% damage/level above 1**, capped +35%
+- Defense **-1.5% incoming damage/level above 1**, capped 25%
+- Stamina **-0.45s reload/level above 1**, absolute 22s floor
+- Skill **+0.6 percentage points accuracy/level above 1**, capped +8pp
+- Luck **+0.7% critical chance/level above 1**, capped 12%; critical hit = 1.5× damage
 
-- `Phase 3 Rules`
-- the locked `Commander Forms` list
-- the 15-phase `Roadmap`
-- `General AIs` wording
-- release-note-style header copy
-- paragraph-length helper/explanation text
+Controlled deployed-browser tests prove the five purchased stats change their intended mechanics. Their autonomous long-run balance remains under investigation.
 
-The roadmap still exists in the project/runtime and remains part of validation; it is simply no longer presented as gameplay UI.
+## Instant diagnostic export
 
-### Simplification — flat presentation
+The top bar includes **Export State**. It can be clicked **at any moment**, including immediately at `t=0`; no win, bug, special event or waiting period is required.
 
-- Removed the repeated stack of bordered dashboard cards.
-- Replaced slash-separated `Left / Right` telemetry with explicit **Left** and **Right** columns.
-- Replaced the global monospace UI with the system interface font while retaining tabular numerals for live statistics.
-- Removed decorative dashboard chrome: no gradients, glow, pill badges, or rounded-card stacks were introduced.
-- Kept the simulation controls as short action labels: **Pause/Resume, Speed, Front, Restart**.
-- The battlefield is edge-to-edge inside its play area instead of sitting inside another decorative card.
+The browser downloads:
 
-### Progressive disclosure
+`musketeer-state-v3.4.0-seed-<seed>-war-<war>-t-<seconds>s.json`
 
-Secondary telemetry is preserved under one closed-by-default **Details** disclosure rather than being deleted.
+Upload that JSON instead of repeatedly taking screenshots. It contains:
 
-It contains economy, command, fortress, combat, calibration, and seed telemetry. This preserves observability while preventing development/debug information from dominating the normal play view.
+- exact seed and RNG state
+- simulation time, war number, war age and winner state
+- front position and velocity
+- General strategies, budgets, reserves and training history
+- every company and command state
+- every troop/commander with rank, HP, XP, reload, position, facing, panic, charge and rejoin state
+- fortresses, fortress hits, positions and siege/BREACH state
+- anomaly flags including an unresolved war past 1800s
+- a rolling 10-second flight recorder
 
-### Responsive layout
+The deployed-browser download regression has passed at `t=0`.
 
-- Desktop: battlefield + compact information rail.
-- Mobile: battlefield first, battle information below it.
-- The mobile browser regression verifies no page-level horizontal overflow; horizontal battlefield movement remains contained inside the battlefield scroller.
+## 2000-second no-win investigation
 
-## Phase 3 v3.1.1 — command continuity
+The reported >2000-second unresolved war is a blocking gameplay problem. Fortress maximum HP remains unchanged: **F 4500 / E 6500**. Ordinary fortress fire remains **6–10** damage. The current v3.4 candidate gives organized SIEGE fire **32–48** and BREACH fire **70–95**, but stronger fortress damage is irrelevant when the spearhead never reaches fortress range.
 
-### Commander retreat is not commander death
+Protected acceptance gate:
 
-- An original living commander remains the company's morale/authority source while alive even if temporarily outside the 180-unit tight-proximity radius.
-- Detailed tactical soldier orders still require the established 350-unit local soldier-command radius.
-- Commander death is the actual command-loss event.
-- A replacement commander must physically reach the company before authority and BREACH viability return.
+- seeds `32201`, `32206`, `32207`
+- observe the first war to **2200 simulated seconds**
+- at least **2/3 must actually resolve**
+- at least one must resolve by **2000s**
+- fortress damage alone is not a win
+- all finite, rank, fortress, company and army-cap invariants must stay green
+- at least one natural long run must perform autonomous stat training after 900s
 
-### Coordinated withdrawal
+### Exact v3.4 result before this checkpoint
 
-- `RALLY` and rearward `DEFEND` move commander and soldiers together.
-- Commander guard/combat distractions are suppressed while actively withdrawing.
-- E/D troops do not begin a fresh autonomous bayonet charge during RALLY/REGROUP withdrawal.
-- Rearward-moving units face their movement direction instead of moonwalking.
+Run `31461105512`: **37/38 passed**.
 
-### Adaptive rebuild thresholds
+- seed `32206` resolved around **1490s**
+- seeds `32201` and `32207` did not resolve by 2200s
+- strict result: **1/3**, therefore rejected as a release
+- artifact `9089913074`
+- SHA256 `42d65174e531c9f89c96168be9110f19379540958b5afb1e1dc19edce8cc0eac`
 
-Rebuild thresholds scale with the commander's chosen 2–14 target size instead of always using the old 4/8 thresholds.
+Its trace showed severe late-war command fragmentation: at 2199s, **13 of 21 companies were on RALLY**, plus one JOINING company. That was evidence for an experiment, not proof that consolidation was the correct solution.
 
-Verified examples:
+## Rejected v3.4.1 experiment — Understrength Company Reform
 
-- target **2** → low **1**, ready **2**
-- target **14** → low **4**, ready **8**
+Candidate commits `924eb4e624b03efd16ee20074d906fa9bd5e7c6b` through `fbd8a2c2e35e51c00147485856eb7ed9f9c60c9e` attempted to:
 
-### Siege-blocked emergency recovery
+- prioritize rebuilding companies for reinforcement
+- transfer existing soldiers between chronically understrength companies
+- place emptied commands in reserve and reuse them later
 
-When a badly depleted army cannot recruit because a viable enemy BREACH controls its fieldwork, the General reports **`MUSTER BLOCKED`** instead of misleadingly reporting `RECOVER F`. Once the fieldwork is relieved, emergency F recruitment resumes. The established fieldwork logistics blockade remains intact.
+Focused tests proved those mechanics preserved troop count, rank and slot validity. The protected deployed suite nevertheless rejected the candidate.
 
-## Core gameplay invariants
+Run `31479352271`: **38/40 passed, 2 failed**.
 
-- fresh war: **0 musketeers per side**
-- maximum: **150 musketeers per army**
-- commanders are separate from the 150-musketeer count
-- commander/company target: **2–14 soldiers**
-- hard company maximum: **14 living musketeers**
-- hard army company maximum: **11**
-- F price **$10**, E **$32**, D **$80**
-- passive income **$10/s**
-- bounty rate **50% of defeated musketeer rank price**
-- living-army upkeep **1.60% of army value/s**
-- musket base reload **30 seconds**
-- veteran minimum reload **27 seconds**
-- D Assault Drill minimum **25 seconds** only under its assault-order conditions
-- F→E at **4 XP**
-- E→D at **10 XP**
-- every earned XP restores **20 HP**, capped at full health
-- only F / E / D are unlocked in Phase 3
-- individual soldier tactical-command radius **350**
-- tight commander/company proximity metric **180**
-- soldier rejoin completion radius **285**
-- replacement commanders join physically
-- fieldwork controls paid reinforcement and is not a forward spawn
-- D Assault Drill remains limited to SIEGE / BREACH / commander CHARGE
-- Form I remains **Shii-Cho**
-- exact 15-phase class roadmap remains intact
+- both focused company-reform tests passed
+- rank ecology and C ecology passed
+- economy/cap/finite-value validation passed
+- **all three 2200s wars remained unresolved**
+- **all nine protected 900s natural-siege seeds produced zero fortress hits**
+- reform therefore disrupted forward pressure and removed the previously reproducible seed-32206 fortress conversion
+- artifact `9096731522`
+- SHA256 `982edae1f7316270504bfe1de42019d26a279858d4bdfafa64df55bd760c4b5f`
 
-## Latest deployed verification
+The experiment was explicitly reverted by commit `f1be4fc82c653bf9cd98ef03a9ccd4127a031ba1`. The active branch contains no v3.4.1 gameplay or tests.
 
-Exact run `31365761574` tested Vercel preview `trendy-game-5l9jf5iof-chclpersonal-9731s-projects.vercel.app` at exact HEAD `910ce709bd3c2505005e32e8bbdd8db7fdc34896`.
+## Current diagnosis
 
-**Result: 22 / 22 Playwright tests passed in about 4.0 minutes.**
+The evidence now rules out two blind approaches:
 
-The two new frontend regressions verify:
+1. **More fortress damage alone** does not help armies that never enter fortress range.
+2. **Moving existing soldiers between companies during a live war** damages forward continuity and siege conversion.
 
-1. primary UI is battle-first; old development chrome and `.card` stacks are absent; Left/Right values use separate columns; advanced telemetry is hidden until **Details** is opened
-2. mobile layout places the battlefield above the information panel and has no page-level horizontal overflow
+The next smallest candidate should target **BREACH spearhead continuity and reinforcement**, not global company consolidation. High `breachAssignments` counts show repeated spearhead replacement; recruitment currently does not specifically reinforce the active BREACH company.
 
-The previous 20 v3.1.1 regressions also remained green, covering command authority, adaptive rebuild thresholds, MUSTER BLOCKED recovery, zero-soldier start, 150 cap, adaptive-company tradeoffs, D progression, F/E economy compatibility, D Assault Drill, autonomous self-play, economy calibration, natural siege, commander return, fieldwork recruitment control, controlled BREACH damage, controls, coordinated withdrawal, visible facing, and physical replacement joining.
+## Core invariants
 
-### Deterministic behavior preservation
-
-The frontend-only build reproduced the same long-run telemetry as the previous verified v3.1.1 build.
-
-**4 × 600-second economy audit, seeds 32101–32104:**
-
-- all technical invariants valid
-- peak living army: **66**
-- peak companies: **11**
-- maximum sampled D share: about **6.45%**
-- highest sampled treasury: about **$2,304.97**, seed 32103
-- seed 32103 ended at **0 / 32 living musketeers**, Left E fortress about **6257.57 / 6500**
-
-The high treasury remains a recorded balance/operational observation rather than being hidden.
-
-**9 × 900-second natural-siege audit, seeds 32201–32209:**
-
-- all technical invariants valid
-- only seed 32207 produced fortress damage
-- Left produced **2 fortress hits**
-- minimum Left BREACH distance about **214.155**
-- Right E fortress **6500 → about 6486.27 HP**
-- the other eight seeds produced zero fortress hits
-
-This exactly preserves the stabilized v3.1.1 siege sample rather than altering it through frontend work.
-
-## Branch policy
-
-- `main` — accepted/stable baseline
-- `agent/current` — the only active development branch
-
-Do not create version-specific development branches. Legacy `update/v2.17`, `update/v2.18`, and `update/v2.19` refs are obsolete cleanup refs and do not drive CI.
+- new war starts with **0 musketeers/side**
+- maximum **150 musketeers/army**; commanders are separate
+- **2–14** target soldiers/company, hard maximum **14**, maximum **11 companies/army**
+- F/E/D/C prices **$10 / $32 / $80 / $150**
+- passive income **$10/s**, bounty **50%**, upkeep **1.60% of living army value/s**
+- base musket reload **30s**
+- F→E **4 XP**, E→D **10 XP**, D→C **18 XP**
+- each earned XP restores **20 HP**, capped at full HP
+- E autonomous bayonet, D Assault Drill and C formal Volley Drill remain preserved
+- local command radius **350**, tight company proximity **180**, rejoin completion **285**
+- replacement commanders must physically join
+- fieldwork remains a logistics gate, never a forward spawn
+- Commander Forms I Shii-Cho and II Makashi remain unlocked; no projectile deflection
+- the 15-phase class roadmap remains intact
 
 ## Roadmap
 
-1. **F Class — STABLE**
-2. **E Class — STABLE**
-3. **D Class — NOW: v3.1.1 automated verified candidate**
-4. **C Class — NEXT CLASS, locked until the next isolated Phase-3 commander-form slice is verified**
-5. B Class
-6. A Class
-7. S Class
-8. SS Class
-9. SSS Class
-10. SSS+ Class
-11. SSS+ Class Type I
-12. SSS+ Class Type II
-13. SSS+ Class Type III
-14. SSS+ Class Type IV
-15. SSS+ Class Type V — final
+1. F — **STABLE**
+2. E — **STABLE**
+3. D — **STABLE**
+4. C — **STABLE**
+5. B — **NEXT CLASS only after v3.4 stabilization**
+6. A
+7. S
+8. SS
+9. SSS
+10. SSS+
+11. SSS+ Type I
+12. SSS+ Type II
+13. SSS+ Type III
+14. SSS+ Type IV
+15. SSS+ Type V
 
-### Near-term Phase 3 roadmap
+Near term:
 
-- **DONE:** v3.1.1 Command Continuity / Coordinated Withdrawal
-- **DONE:** battle-first frontend rework / anti-generic-UI cleanup
-- **NEXT:** Form II — **Makashi**, isolated as its own commander-form slice
-- continue tracking siege-blocked treasury accumulation without weakening fieldwork logistics
-- **LATER:** C Class after the commander-form slice is independently verified
+- **NOW:** isolate BREACH spearhead churn and test reinforcement priority without reassigning existing soldiers
+- **NEXT:** stabilize v3.4 and pass the strict 2/3 long-war resolution gate
+- **THEN:** B Class as its own isolated soldier-rank update
+- **LATER:** Form III Soresu, isolated from B Class
 
-## Verification / acceptance policy
+## Verification policy
 
-- Failed experiments stay failed in the evidence; acceptance tests are not weakened to make a candidate pass.
-- Automated browser evidence proves only the scenarios it actually tests.
-- Automated technical failures block advancement.
-- After a technically verified update is delivered, **no user comments means accepted/good**.
+- A passing focused test does not override a failed protected ecology/siege gate.
+- Failed candidates remain failed and documented.
+- Tests are not weakened to manufacture a release.
+- Deployed-browser evidence proves only the scenarios actually exercised.
+- No-comments acceptance applies only after a technically verified update is delivered.

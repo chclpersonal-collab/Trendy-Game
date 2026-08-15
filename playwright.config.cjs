@@ -8,8 +8,8 @@ module.exports = defineConfig({
   outputDir: 'test-results',
   timeout: 120000,
   expect: { timeout: 10000 },
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : 1,
   retries: 0,
   reporter: [
     ['list'],
