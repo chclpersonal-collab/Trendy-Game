@@ -14,17 +14,18 @@ test('C Class is directly buyable and D promotes to C at 18 total XP',async({pag
     const before=g.money,c=api.buyMusketeer(0,'C'),afterDirect=g.money,d=api.buyMusketeer(0,'D');
     d.xp=17;d.hp=50;api.awardKill(d,{isCommander:false,rank:'F'},'test');
     const s=GameTest.state();
-    return{before,afterDirect,direct:{rank:c.rank,xp:c.xp},earned:{rank:d.rank,xp:d.xp,hp:d.hp},cPromotions:s.cPromotions,cclass:s.cclass,prices:s.economy.rankPrices,purchasable:s.economy.purchasableRanks,validation:GameTest.validate()};
+    return{before,afterDirect,direct:{rank:c.rank,xp:c.xp,hp:c.hp,maxHp:c.maxHp,mana:c.mana,maxMana:c.maxMana},earned:{rank:d.rank,xp:d.xp,hp:d.hp,maxHp:d.maxHp},cPromotions:s.cPromotions,cclass:s.cclass,prices:s.economy.rankPrices,purchasable:s.economy.purchasableRanks,validation:GameTest.validate()};
   });
   expect(r.validation.ok).toBe(true);
-  expect(r.before-r.afterDirect).toBe(150);
-  expect(r.direct).toEqual({rank:'C',xp:18});
+  expect(r.before-r.afterDirect).toBe(60);
+  expect(r.direct).toEqual({rank:'C',xp:18,hp:145,maxHp:145,mana:55,maxMana:55});
   expect(r.earned.rank).toBe('C');
   expect(r.earned.xp).toBe(18);
   expect(r.earned.hp).toBe(70);
+  expect(r.earned.maxHp).toBe(145);
   expect(r.cPromotions[0]).toBe(1);
   expect(r.cclass[0]).toBe(2);
-  expect(r.prices.C).toBe(150);
+  expect(r.prices.C).toBe(60);
   expect(r.purchasable).toContain('C');
 });
 
