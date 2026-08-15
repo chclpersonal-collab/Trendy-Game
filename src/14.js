@@ -37,7 +37,7 @@ for(const rank of V35_RANK_ORDER){RANK_PRICE[rank]=V35_RANK_PROFILES[rank].cost;
 
 function rankProfileOf(a){const rank=typeof a==='string'?a:classOf(a);return V35_RANK_PROFILES[rank]||V35_RANK_PROFILES.F}
 rankScoreOf=function(a){const rank=typeof a==='string'?a:classOf(a),i=V35_RANK_ORDER.indexOf(rank);return i<0?1:i+1};
-rankLabelXP=function(xp){let rank='F';for(const name of V35_RANK_ORDER)if(xp>=(V35_RANK_PROFILES[name].promotionXP||0))rank=name;return `${rank}·${Math.max(0,xp-(V35_RANK_PROFILES[rank].promotionXP||0))}`};
+rankLabelXP=function(xp){let rank='F';for(const name of V35_RANK_ORDER)if(PURCHASABLE_RANKS.includes(name)&&xp>=(V35_RANK_PROFILES[name].promotionXP||0))rank=name;return `${rank}·${Math.max(0,xp-(V35_RANK_PROFILES[rank].promotionXP||0))}`};
 function rankRangeOf(a){return rankProfileOf(a).range}
 function ensureRankVitals(a,fill=false){
  if(!a||a.isCommander)return a;
