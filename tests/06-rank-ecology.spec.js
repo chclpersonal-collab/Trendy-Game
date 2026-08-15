@@ -54,7 +54,7 @@ test('E and D obey SIEGE/BREACH discipline but retain autonomous bayonet behavio
 });
 
 test('600-second rank ecology sample keeps F majority while E is regular and D is actually present',async({page},testInfo)=>{
-  test.setTimeout(60000);await openGame(page);
+  test.setTimeout(180000);await openGame(page);
   const r=await page.evaluate(()=>{
     GameTest.setSeed(34202);const samples=[];
     for(let i=0;i<20;i++){
@@ -65,8 +65,8 @@ test('600-second rank ecology sample keeps F majority while E is regular and D i
     const mean=k=>samples.reduce((n,x)=>n+x[k],0)/Math.max(1,samples.length),maxElite=Math.max(0,...samples.map(x=>x.elite)),dPresence=samples.filter(x=>x.dPresent).length/Math.max(1,samples.length),s=GameTest.snapshot();
     return{sampleCount:samples.length,meanE:mean('e'),meanD:mean('d'),meanElite:mean('elite'),maxElite,dPresence,rankPurchases:s.rankPurchases,finalE:s.eclass,finalD:s.dclass,validation:GameTest.validate()};
   });
-  console.log(`V321_RANK_ECOLOGY ${JSON.stringify(r)}`);
-  await testInfo.attach('v321-rank-ecology.json',{body:Buffer.from(JSON.stringify(r,null,2)),contentType:'application/json'});
+  console.log(`V35_RANK_ECOLOGY ${JSON.stringify(r)}`);
+  await testInfo.attach('v35-rank-ecology.json',{body:Buffer.from(JSON.stringify(r,null,2)),contentType:'application/json'});
   expect(r.validation.ok).toBe(true);
   expect(r.sampleCount).toBeGreaterThan(10);
   expect(r.meanE).toBeGreaterThan(.10);

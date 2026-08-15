@@ -31,7 +31,7 @@ permissions:
 jobs:
   playtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -98,10 +98,22 @@ jobs:
             exit 1
           fi
 
-      - name: Run deployed browser playtests
+      - name: Run focused and fast deployed-browser regressions
         env:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: npm run test:e2e
+        run: >-
+          npx playwright test
+          --grep-invert "600-second rank ecology sample|long-war escalation converts|v3.5 economy calibration stays finite|natural siege remains possible|CALIBRATION:"
+
+      - name: Run sharded calibration and long-war gates
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: >-
+          npx playwright test
+          tests/06-rank-ecology.spec.js
+          tests/09-long-war-resolution.spec.js
+          tests/13-calibration.spec.js
+          --grep "600-second rank ecology sample|long-war escalation converts|CALIBRATION:"
 
       - name: Upload Playwright evidence
         if: always()

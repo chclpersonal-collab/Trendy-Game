@@ -7,10 +7,10 @@ async function openGame(page){
   const pause=page.locator('#pauseBtn');if((await pause.textContent())?.trim()==='Pause')await pause.click();
 }
 
-test('primary game UI is battle-first and exposes real training stats plus instant export',async({page},testInfo)=>{
+test('primary game UI is battle-first and exposes v3.5 resources, training stats, and instant export',async({page},testInfo)=>{
   await openGame(page);
   await expect(page.locator('header .title')).toHaveText('Musketeer Battle Simulator');
-  await expect(page.locator('header .version')).toHaveText('v3.4');
+  await expect(page.locator('header .version')).toHaveText('v3.5');
   await expect(page.locator('#exportStateBtn')).toBeVisible();
   await expect(page.locator('.card')).toHaveCount(0);
   await expect(page.getByText('Roadmap',{exact:true})).toHaveCount(0);
@@ -19,11 +19,13 @@ test('primary game UI is battle-first and exposes real training stats plus insta
   await expect(page.locator('#integrityStat > span').first()).toHaveText('Authority');
   await expect(page.locator('#uncommandedStat > span').first()).toHaveText('No authority');
   await expect(page.locator('#budgetStat > span').first()).toHaveText('Budget');
-  for(const id of['offenseStat','defenseStat','staminaStat','luckStat','skillStat','localCommandStat'])await expect(page.locator(`#${id}`)).toBeVisible();
+  for(const id of['offenseStat','defenseStat','staminaStat','luckStat','skillStat','localCommandStat','armyHpStat','armyManaStat','rankRangeStat'])await expect(page.locator(`#${id}`)).toBeVisible();
   await expect(page.locator('#offenseStat [data-side="left"]')).toHaveText('Lv 1');
+  await expect(page.locator('#armyHpStat [data-side="left"]')).toHaveText('300/300');
+  await expect(page.locator('#rankRangeStat [data-side="left"]')).toHaveText('205–205');
   await expect(page.locator('#details')).not.toHaveAttribute('open','');
   await page.locator('#details summary').click();await expect(page.locator('#pricingStat')).toBeVisible();await expect(page.locator('#cPromotionsStat')).toBeVisible();
-  const p=testInfo.outputPath('ui-v34-desktop.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v34-desktop.png',{path:p,contentType:'image/png'});
+  const p=testInfo.outputPath('ui-v35-desktop.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v35-desktop.png',{path:p,contentType:'image/png'});
 });
 
 test('mobile layout keeps battlefield above information panel with the Export State control available',async({page},testInfo)=>{
@@ -31,5 +33,5 @@ test('mobile layout keeps battlefield above information panel with the Export St
   const field=await page.locator('#fieldWrap').boundingBox(),side=await page.locator('#side').boundingBox();expect(field).not.toBeNull();expect(side).not.toBeNull();expect(side.y).toBeGreaterThan(field.y);
   await expect(page.locator('#exportStateBtn')).toBeVisible();
   const overflow=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,width:innerWidth}));expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.width+1);
-  const p=testInfo.outputPath('ui-v34-mobile.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v34-mobile.png',{path:p,contentType:'image/png'});
+  const p=testInfo.outputPath('ui-v35-mobile.png');await page.screenshot({path:p,fullPage:true});await testInfo.attach('ui-v35-mobile.png',{path:p,contentType:'image/png'});
 });

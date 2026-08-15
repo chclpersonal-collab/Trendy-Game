@@ -11,19 +11,19 @@ test('organized siege damage is materially stronger while ordinary fortress fire
 });
 
 test('long-war escalation converts established siege seeds into actual first-war resolutions instead of universal 2000s stalemate',async({page},testInfo)=>{
-  test.setTimeout(300000);await openGame(page);
+  test.setTimeout(720000);await openGame(page);
   const r=await page.evaluate(()=>{
     const seeds=[32201,32206,32207],out=[];
     for(const seed of seeds){
       GameTest.setSeed(seed);let firstWinner=-1,firstWinTime=null,maxFortDamage=0,peakSiegePushes=[0,0],minBreachFortDistance=[Infinity,Infinity],maxStatUpgrades=[0,0];
       for(let t=0;t<2200&&firstWinner===-1;t+=5){
-        GameTest.advance(5);const s=GameTest.state();maxFortDamage=Math.max(maxFortDamage,...s.fortresses.map(f=>f.maxHp-f.hp));peakSiegePushes=peakSiegePushes.map((v,i)=>Math.max(v,s.siegePushes[i]));maxStatUpgrades=maxStatUpgrades.map((v,i)=>Math.max(v,s.statTraining.upgradeCounts[i]));for(let i=0;i<2;i++)if(s.breachFortDistance[i]!==null)minBreachFortDistance[i]=Math.min(minBreachFortDistance[i],s.breachFortDistance[i]);if(s.warWinner!==-1||s.war>1){firstWinner=s.warWinner!==-1?s.warWinner:(s.warsWon[0]>0?0:s.warsWon[1]>0?1:-1);firstWinTime=s.time}
+        GameTest.advance(5);const s=GameTest.state();maxFortDamage=Math.max(maxFortDamage,...s.fortresses.map(f=>f.maxHp-f.hp));peakSiegePushes=peakSiegePushes.map((v,i)=>Math.max(v,s.siegePushes[i]));maxStatUpgrades=maxStatUpgrades.map((v,i)=>Math.max(v,s.statTraining.upgradeCounts[i]));for(let i=0;i<2;i++)if(s.breachFortDistance[i]!==null)minBreachFortDistance[i]=Math.min(minBreachFortDistance[i],s.breachFortDistance[i]);if(s.warWinner!==-1||s.war>1||s.warsWon.some(v=>v>0)){firstWinner=s.warWinner!==-1?s.warWinner:(s.warsWon[0]>0?0:s.warsWon[1]>0?1:-1);firstWinTime=s.time}
       }
       const s=GameTest.snapshot();out.push({seed,firstWinner,firstWinTime,maxFortDamage,peakSiegePushes,minBreachFortDistance:minBreachFortDistance.map(v=>Number.isFinite(v)?v:null),maxStatUpgrades,finalStats:s.armyStats,breachAssignments:s.breachAssignments,warsWon:s.warsWon,war:s.war,validation:GameTest.validate()});
     }
     return out;
   });
-  console.log(`V34_LONG_WAR ${JSON.stringify(r)}`);await testInfo.attach('v34-long-war-resolution.json',{body:Buffer.from(JSON.stringify(r,null,2)),contentType:'application/json'});
+  console.log(`V35_LONG_WAR ${JSON.stringify(r)}`);await testInfo.attach('v35-long-war-resolution.json',{body:Buffer.from(JSON.stringify(r,null,2)),contentType:'application/json'});
   for(const x of r)expect(x.validation.ok).toBe(true);
   const resolved=r.filter(x=>x.firstWinner!==-1||x.warsWon.some(v=>v>0));expect(resolved.length).toBeGreaterThanOrEqual(2);
   expect(r.some(x=>x.firstWinTime!==null&&x.firstWinTime<=2000)).toBe(true);

@@ -1,188 +1,93 @@
 # Musketeer Battle Simulator Roadmap
 
-## NOW — v3.5 Performance Stabilization
+## Current — v3.5 Verification Recovery
 
-### User-reported blocker
+**Classification:** verification-infrastructure patch and export calibration; no gameplay-balance change.
 
-The first ordinary v3.5 playtest became severely unresponsive, reportedly reaching approximately one rendered frame per second.
+### Accepted performance fix
 
-Export `musketeer-state-v3.5.0-seed-3101678311-war-1-t-153s.json` recorded the slowdown at:
+The v3.5 target-cache/10 Hz UI hotfix is accepted.
 
-- 153.113 simulated seconds
-- 4× speed
-- 83 living musketeers and 12 commanders
-- 95 living actors total
-- six companies per side
-- only one active shot and zero smoke particles
-- 1280×631 viewport at device-pixel ratio 2
+- Original failure export: seed `3101678311`, 153s, severe lag at 95 living actors.
+- Automated run `31869048466`: focused probes passed at about 60.86 FPS; the overall job was cancelled by its 15-minute limit during long simulations.
+- Acceptance export: seed `1597106260`, 1,725.729s at 4×, peak 317 living actors, 94.18 recent FPS, 1.3/24.7 ms last/max step, 1.8/79.4 ms last/max frame, zero full-pool sorts, about 65.1% cache hits.
 
-This is far below the 150-soldier-per-army limit and rules out particle saturation as the primary explanation. The export contains no CPU profile, so the causal diagnosis is based on the active code path at this exact population.
+Decision: performance blocker resolved for this device and near-cap scenario. Detailed record: `docs/v3.5-performance-hotfix.md`.
 
-### v3.5 target-cache/UI-cadence hotfix
+### First long export calibration
 
-**Classification: performance bug fix; no intended balance change.**
+Seed `1597106260` at 1,725.729s:
 
-Root cause in the active v3.5 implementation:
+- Left: 0 soldiers, 0 commanders, fortress 124.33/6,500 HP.
+- Right: 56 soldiers, 11 commanders, fortress untouched, 124 fortress hits.
+- First fortress damage around 1,533.1s; Left reached zero soldiers around 1,543.2s.
+- Peak armies: 147 and 150 soldiers.
+- Purchases: 1,035 / 991; kill income: $10,939 / $11,898; stat spend: $2,990 / $8,820.
+- Purchase shares: Left F/E/D/C 63.8/28.2/5.2/2.8%; Right 61.0/30.2/6.4/2.4%.
 
-- every shield-aware target request copied and sorted the enemy pool;
-- every sort comparison recomputed target scores;
-- every score rescanned the same pool for potential lower-rank shields;
-- base combat, rank formation, and extended-range layers could request the same actor target repeatedly in one simulation step;
-- the full text information rail was rewritten every rendered frame.
+Decision: no economy retune from one near-win. The losing side's $5.2k treasury accumulated after active BREACH correctly blocked recruitment. Hold current values until the deterministic seed completes and a post-reset export exists. Detailed record: `docs/v3.5-1725s-export-calibration.md`.
 
-Implemented hotfix design:
+### CI repair
 
-- one shield-candidate index per actor-update step;
-- single-pass target minimum with the established score and actor-ID tie-break;
-- per-step actor/mode caches for `enemy`, `combat`, `siege`, and `breach` targets;
-- dead cached targets are recomputed immediately;
-- rear-threat, siege-range, BREACH-range, commander-fallback, shield-depth, shield-lane, and shield-penalty behavior are preserved;
-- direct test/helper targeting calls remain uncached so manual actor movement is immediately visible;
-- text UI refresh is reduced to 10 Hz while simulation and canvas rendering remain on `requestAnimationFrame`;
-- exports gain targeting, step-time, frame-time, FPS, and UI-update telemetry.
+- Update stale v3.4 UI assertion to v3.5.
+- Use two CI workers and full test-level parallelism.
+- Increase workflow limit from 15 to 25 minutes.
+- Separate fast regressions from long calibration gates.
+- Give long tests evidence-appropriate timeouts.
+- Add seed `1597106260` as a deterministic gate: fortress damage by 1,600s and first-war resolution by 1,800s.
 
-Detailed evidence and acceptance gate: `docs/v3.5-performance-hotfix.md`.
+## Locked v3.5 Contract
 
-### Performance acceptance gate
+### Economy
 
-- Existing shield-selection and rank-formation tests remain green.
-- A controlled scenario creates at least 90 living actors.
-- Full-pool target sorts: exactly zero.
-- Repeated same-step target requests produce cache hits.
-- Last-step candidate evaluations stay below four full living-actor matrix passes.
-- Last-step shield checks remain locally bounded rather than rescanning every enemy for every comparator.
-- Two seconds of export-sized synchronous simulation completes within five seconds on the GitHub runner.
-- A crowded 4× browser probe produces more than 15 animation frames over 1.6 seconds.
-- UI updates stay within the 100 ms refresh budget.
-- All economy, HP/Mana/range, rank-lock, company, fortress, command, and finite-value invariants remain valid.
+- Prices: F $15; E $30; D $45; C $60; B $75; A $90; S $150; SS $300; SSS $450; SSS+ $600; Type I $750; Type II $900; Type III $1,500; Type IV $3,000; **SSS+ Type V $15,000**.
+- Soldier maintenance: $0/s.
+- Passive income: $10/s; E-fortress bonus: $2/s; bounty: 50%; start: $175.
+- Only F/E/D/C are live. B through SSS+ Type V remain roadmap-locked.
 
-### Current status
+### Rank resources
 
-**IMPLEMENTED CANDIDATE / DEPLOYMENT AND FULL VERIFICATION REQUIRED.**
+- F/E/D/C HP: 100/115/135/160; Mana: 0/24/36/52; range: 205/220/235/250.
+- Future profiles remain authoritative in runtime state and `docs/v3.5-economy-rank-foundation.md`.
+- Direct purchases spawn full; promotion preserves damage, applies the existing +20 XP heal, and grants only capacity difference.
+- Basic musket 0 Mana; E+ charge 8 Mana; C formal volley 3 Mana.
+- Higher ranks have strictly longer hard-limited range; lower ranks form positional forward screens.
 
-The user export proves the symptom and supplies the population/state boundary. It does not itself prove post-hotfix frame rate; deployed automated evidence and a fresh real-device run are still required.
+## Protected Gates
 
-## v3.5 Ranked Economy / Combat Profile Foundation
+### Fast gate
 
-### Change class
+Prices/locks, HP/Mana/range, Mana use, UI, shielding, performance cache/frame probes, command/company/fortress/fieldwork/finite invariants.
 
-**MAJOR** — intentional economy and combat-contract change authorized by the user. Purchase prices, recurring costs, unit durability, Mana, range, targeting priorities, export metadata, and balance assumptions changed.
+### Long gate
 
-### Corrected rank ladder
+- 600s F/E/D ecology sample.
+- Four 600s zero-maintenance economy seeds.
+- Nine 900s natural-siege seeds.
+- Seeds `32201`, `32206`, `32207`: at least 2/3 first wars resolve, one by 2,000s.
+- Seed `1597106260`: first war resolves by 1,800s.
 
-The final user entry `SSS Type V` is normalized to **SSS+ Type V**.
+## Rejected
 
-| Rank | Cost | HP | Mana | Mana/s | Range | Formation layer |
-|---|---:|---:|---:|---:|---:|---:|
-| F | $15 | 100 | 0 | 0.00 | 205 | +30 front |
-| E | $30 | 115 | 24 | 0.40 | 220 | +22 |
-| D | $45 | 135 | 36 | 0.55 | 235 | +14 |
-| C | $60 | 160 | 52 | 0.75 | 250 | +6 |
-| B | $75 | 190 | 70 | 0.95 | 265 | -4 |
-| A | $90 | 225 | 90 | 1.15 | 280 | -14 |
-| S | $150 | 280 | 120 | 1.45 | 300 | -26 |
-| SS | $300 | 360 | 160 | 1.85 | 325 | -38 |
-| SSS | $450 | 460 | 210 | 2.30 | 350 | -50 |
-| SSS+ | $600 | 600 | 280 | 2.90 | 380 | -62 |
-| SSS+ Type I | $750 | 760 | 360 | 3.60 | 410 | -74 |
-| SSS+ Type II | $900 | 950 | 460 | 4.50 | 445 | -86 |
-| SSS+ Type III | $1,500 | 1,250 | 620 | 6.00 | 485 | -100 |
-| SSS+ Type IV | $3,000 | 1,750 | 900 | 8.50 | 535 | -115 |
-| SSS+ Type V | $15,000 | 3,000 | 1,600 | 14.00 | 620 | -135 rear |
+- v3.4.1 BREACH recruit priority — run `31483950617`, 34/40, 0/3 wins, zero natural fortress hits.
+- v3.4.2 continuity hysteresis — run `31673977561`, 39/40, focused behavior passed but 0/3 long-war wins.
 
-### Economy contract
+Neither rejected layer is active.
 
-- Soldier maintenance/upkeep is removed: `$0/s`.
-- Passive income remains `$10/s` pending export calibration.
-- E-fortress income bonus remains `$2/s`.
-- Rank-quality passive-income bonuses are removed.
-- Kill bounty remains 50% of defeated-rank purchase price.
-- Starting treasury remains `$175`.
-- Fortress upgrades and army-stat training retain their existing costs for the first economy slice.
-- Only F/E/D/C are purchasable; B through SSS+ Type V remain roadmap-locked.
+## Next
 
-### HP, Mana, range, and shielding contract
+1. Complete the repaired deployed suite.
+2. Confirm seed `1597106260` resolves by 1,800s.
+3. Collect one post-victory/post-reset export.
+4. Change at most one economy family only if sustained non-blockade hoarding is demonstrated.
+5. Reassess the 2/3 long-war gate before B Class.
 
-- Direct purchases spawn at full rank HP and Mana.
-- Promotion preserves damage, applies the established +20 XP heal, and grants only the new capacity difference.
-- Basic musket fire costs zero Mana.
-- E-or-higher bayonet charge costs 8 Mana.
-- C formal-volley shots cost 3 Mana; insufficient Mana falls back to ordinary fire.
-- Every successive rank has longer musket range.
-- Organized SIEGE/BREACH fortress fire may use rank range.
-- Lower ranks occupy more-forward ordinary formation layers.
-- SIEGE, BREACH, CHARGE, TURN, RALLY, and REGROUP are excluded from forced rank layering.
-- A lower-rank screen within 125 horizontal and 90 vertical units strongly discourages bypass targeting without making the shield invulnerable.
+## Later Classes
 
-### Balance status
+B → A → S → SS → SSS → SSS+ → Type I → Type II → Type III → Type IV → Type V.
 
-The supplied 153-second export shows:
+## Blocked
 
-- zero maintenance functioning;
-- both E fortresses purchased;
-- living armies of 44 and 39 musketeers;
-- 63 and 67 cumulative purchases;
-- treasuries of approximately $366 and $216;
-- rank purchases already including E, D, and C;
-- no siege push or fortress hit yet, which is expected this early and is not a long-war result.
-
-Balance calibration is postponed until performance is stable enough to gather representative 600–2,200-second exports.
-
-## REJECTED / SUPERSEDED
-
-### v3.4.1 active-BREACH recruit priority
-
-- Run `31483950617`: 34/40.
-- Long-war result: 0/3; all nine natural-siege seeds produced zero fortress hits.
-- Artifact `9098617893`, SHA256 `2c3f2217b651e36a0497f58253cf0c3501d1a2f787746a6d11dcedffdeef2285`.
-
-### v3.4.2 BREACH continuity hysteresis
-
-- Run `31673977561`: 39/40.
-- Focused continuity passed and seed `32208` retained two fortress hits.
-- Strict long-war result remained 0/3 with zero fortress damage.
-- Artifact `9170990259`, SHA256 `9b3670cfc4983e6cb1a0c08133eccc91a07b4cb597e3ddd65f5fe6988d6dadd3`.
-
-Neither rejected BREACH layer is active in v3.5.
-
-## NEXT
-
-1. Complete deployed verification of the performance hotfix.
-2. Collect a fresh real-device v3.5 export after at least 600 simulated seconds if responsiveness permits.
-3. Use performance telemetry to confirm frame/step stability at larger populations.
-4. Resume economy calibration only after the game remains responsive.
-5. Tune passive income, reserves, bounty, training costs, rank shares, HP, Mana, or range one responsible family at a time.
-6. Revisit long-war resolution after performance and economy evidence are both trustworthy.
-
-## LATER — Class Roadmap
-
-1. F — stable foundation
-2. E — stable foundation
-3. D — stable foundation
-4. C — stable foundation
-5. B — next class after v3.5 performance and mechanical stabilization
-6. A
-7. S
-8. SS
-9. SSS
-10. SSS+
-11. SSS+ Type I
-12. SSS+ Type II
-13. SSS+ Type III
-14. SSS+ Type IV
-15. SSS+ Type V — final
-
-## BLOCKED
-
-- B Class is blocked until the v3.5 performance hotfix and mechanical contract are verified.
-- Final balance is blocked on representative export-state results gathered at usable frame rates.
-- Future-rank unique abilities remain blocked until their individual roadmap phases.
-
-## DONE
-
-- F, E, D, and C class foundations.
-- Commander Forms I Shii-Cho and II Makashi.
-- Upgradeable Offense, Defense, Stamina, Luck, and Skill.
-- Instant full-state JSON export.
-- v3.5 zero-maintenance ranked economy and HP/Mana/range/shielding foundation implemented as a candidate.
-- Rejection evidence for v3.4.1 and v3.4.2 preserved.
+- B Class until the repaired suite completes and long-war evidence is interpreted.
+- Economy retuning until a completed-war/post-reset export.
+- Future-rank abilities until their individual phases.
