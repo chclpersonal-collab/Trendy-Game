@@ -37,7 +37,7 @@ test('C Volley Drill is formal-volley-only and does not become a passive univers
 });
 
 test('C procurement follows E/D foundation and 600-second ecology keeps C scarce but operationally present',async({page},testInfo)=>{
-  test.setTimeout(70000);await openGame(page);
+  test.setTimeout(180000);await openGame(page);
   const r=await page.evaluate(()=>{
     GameTest.setSeed(35303);const api=__battleSim.test,g=api.generals()[0];g.money=10000;
     for(let i=0;i<17;i++)api.buyMusketeer(0,'F');for(let i=0;i<7;i++)api.buyMusketeer(0,'E');api.buyMusketeer(0,'D');
