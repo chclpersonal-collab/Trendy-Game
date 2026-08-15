@@ -19,7 +19,7 @@ test('army stats are paid upgrades and each stat changes its intended gameplay m
     api.buyStatUpgrade(0,'Luck',true);const luckAfter=api.luckCritChance(0),forcedLucky=api.luckyDamageMultiplier(0,0),forcedNotLucky=api.luckyDamageMultiplier(0,1);
     return{paid,cost,moneyBefore,moneyAfter,baseDamage,offenseDamage,defendedDamage,reloadBefore,reloadAfter,aimBefore,aimAfter,luckBefore,luckAfter,forcedLucky,forcedNotLucky,state:GameTest.state(),validation:GameTest.validate()};
   });
-  expect(r.validation.ok).toBe(true);expect(r.validation.invalidStats).toBe(false);expect(r.paid).toBe(true);expect(r.moneyBefore-r.moneyAfter).toBe(r.cost);
+  expect(r.validation.ok).toBe(true);expect(r.validation.invalidStats).toBe(false);expect(r.validation.invalidRankVitals).toBe(false);expect(r.paid).toBe(true);expect(r.moneyBefore-r.moneyAfter).toBe(r.cost);
   expect(r.state.armyStats[0].Offense).toBe(2);expect(r.state.armyStats[1].Defense).toBe(2);expect(r.offenseDamage).toBeGreaterThan(r.baseDamage);expect(r.defendedDamage).toBeLessThan(r.offenseDamage);
   expect(r.reloadAfter).toBeLessThan(r.reloadBefore);expect(r.aimAfter).toBeGreaterThan(r.aimBefore);expect(r.luckBefore).toBe(0);expect(r.luckAfter).toBeGreaterThan(0);expect(r.forcedLucky).toBe(1.5);expect(r.forcedNotLucky).toBe(1);
 });
@@ -33,10 +33,10 @@ test('General AI training is blocked during the first 900 seconds so early rank 
   expect(r.validation.ok).toBe(true);expect(r.maturity).toBe(900);expect(r.early).toBe(false);expect(r.after).toEqual(r.before);expect(r.upgrades).toBe(0);expect(r.spend).toBe(0);
 });
 
-test('Export State downloads a complete current-state JSON immediately without advancing the battle',async({page},testInfo)=>{
+test('Export State downloads complete v3.5 rank/economy diagnostics immediately without advancing the battle',async({page},testInfo)=>{
   await openGame(page);await page.evaluate(()=>GameTest.setSeed(36003));
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#exportStateBtn').click()]);const path=await download.path();expect(path).toBeTruthy();const payload=JSON.parse(fs.readFileSync(path,'utf8'));
-  expect(download.suggestedFilename()).toMatch(/^musketeer-state-v3\.4\.0-seed-36003-war-1-t-0s\.json$/);expect(payload.game).toBe('Musketeer Battle Simulator');expect(payload.version).toBe('3.4.0');expect(payload.runtime.seed).toBe(36003);expect(payload.runtime.simTime).toBe(0);expect(Number.isInteger(payload.runtime.rngState)).toBe(true);
-  expect(payload.state.patchVersion).toBe('3.4.0');expect(payload.state.armyStats[0].Offense).toBe(1);expect(Array.isArray(payload.actors)).toBe(true);expect(payload.actors.length).toBeGreaterThan(0);expect(Array.isArray(payload.generals)).toBe(true);expect(Array.isArray(payload.positions)).toBe(true);expect(Array.isArray(payload.flightRecorder)).toBe(true);expect(payload.anomalies.longWarNoWinner).toBe(false);
-  await testInfo.attach('instant-export-example.json',{body:Buffer.from(JSON.stringify(payload,null,2)),contentType:'application/json'});
+  expect(download.suggestedFilename()).toMatch(/^musketeer-state-v3\.5\.0-seed-36003-war-1-t-0s\.json$/);expect(payload.game).toBe('Musketeer Battle Simulator');expect(payload.version).toBe('3.5.0');expect(payload.runtime.seed).toBe(36003);expect(payload.runtime.simTime).toBe(0);expect(Number.isInteger(payload.runtime.rngState)).toBe(true);
+  expect(payload.state.patchVersion).toBe('3.5.0');expect(payload.state.armyStats[0].Offense).toBe(1);expect(payload.state.economy.maintenanceRemoved).toBe(true);expect(payload.state.rankSystem.profiles['SSS+ Type V'].cost).toBe(15000);expect(Array.isArray(payload.actors)).toBe(true);expect(payload.actors.length).toBeGreaterThan(0);expect(Array.isArray(payload.generals)).toBe(true);expect(Array.isArray(payload.positions)).toBe(true);expect(Array.isArray(payload.flightRecorder)).toBe(true);expect(payload.anomalies.longWarNoWinner).toBe(false);
+  await testInfo.attach('instant-export-v35-example.json',{body:Buffer.from(JSON.stringify(payload,null,2)),contentType:'application/json'});
 });

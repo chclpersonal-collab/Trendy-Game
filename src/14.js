@@ -11,122 +11,133 @@ generalDecision=function(team){const out=v34BaseGeneralDecision(team),g=generals
 const v34CorrectedState=window.__battleSim.state;
 window.__battleSim.state=()=>{const state=v34CorrectedState();state.statTraining.aiMaturitySeconds=V34_TRAINING_MATURITY;state.siegeResolution.longWarCommitSeconds=V34_LONG_WAR_COMMIT;state.siegeResolution.matureSiegePolicy='any General decision that remains SIEGE after 900s retains the mature-war commitment; normal strategy can still abort to DEFEND/CONTEST';return state};
 Object.assign(window.__battleSim.test,{tryArmyTraining,enterLongWarSiege,generalDecision});window.GameTest.state=()=>window.__battleSim.state();
-
-'use strict';
-// Phase 4 v3.4.3 economy/rank foundation candidate — rank resources, zero maintenance, ranged screens.
-// Public release metadata remains v3.4.0 until export-led balance verification accepts this system.
-const V35_ECONOMY_ID='rank-resources-zero-maintenance-v1';
-const V35_FREE_RANGE=BASE_RANGE,V35_RANGE_MANA_STEP=50,V35_SHIELD_LANE=70;
+// Phase 4 v3.5 — ranked economy, HP/mana/range profiles, and layered shielding.
+// This is a deliberately large, user-authorized economy contract change. Only F/E/D/C remain unlocked;
+// later ranks receive authoritative profiles and prices now so future phases share one data model.
+const V35_VERSION='3.5.0',V35_BAYONET_MANA_COST=8,V35_VOLLEY_MANA_COST=3;
 const V35_RANK_ORDER=['F','E','D','C','B','A','S','SS','SSS','SSS+','SSS+ Type I','SSS+ Type II','SSS+ Type III','SSS+ Type IV','SSS+ Type V'];
 const V35_RANK_PROFILES={
- F:{cost:15,hp:100,mana:20,range:215,manaRegen:.12,role:'line shield'},
- E:{cost:30,hp:115,mana:30,range:230,manaRegen:.16,role:'veteran shield'},
- D:{cost:45,hp:130,mana:42,range:245,manaRegen:.20,role:'assault support'},
- C:{cost:60,hp:145,mana:55,range:260,manaRegen:.24,role:'volley support'},
- B:{cost:75,hp:165,mana:70,range:275,manaRegen:.28,role:'protected marksman'},
- A:{cost:90,hp:190,mana:90,range:290,manaRegen:.32,role:'protected marksman'},
- S:{cost:150,hp:230,mana:120,range:315,manaRegen:.40,role:'elite rear line'},
- SS:{cost:300,hp:290,mana:170,range:345,manaRegen:.50,role:'elite rear line'},
- SSS:{cost:450,hp:360,mana:230,range:380,manaRegen:.62,role:'strategic rear line'},
- 'SSS+':{cost:600,hp:450,mana:310,range:420,manaRegen:.76,role:'strategic rear line'},
- 'SSS+ Type I':{cost:750,hp:560,mana:400,range:460,manaRegen:.92,role:'specialist rear line'},
- 'SSS+ Type II':{cost:900,hp:700,mana:510,range:505,manaRegen:1.10,role:'specialist rear line'},
- 'SSS+ Type III':{cost:1500,hp:900,mana:680,range:560,manaRegen:1.35,role:'siege specialist'},
- 'SSS+ Type IV':{cost:3000,hp:1250,mana:950,range:635,manaRegen:1.70,role:'siege specialist'},
- 'SSS+ Type V':{cost:15000,hp:2200,mana:1800,range:750,manaRegen:2.50,role:'final strategic unit'}
+ F:{cost:15,hp:100,mana:0,manaRegen:0,range:205,screenOffset:30,promotionXP:0},
+ E:{cost:30,hp:115,mana:24,manaRegen:.40,range:220,screenOffset:22,promotionXP:4},
+ D:{cost:45,hp:135,mana:36,manaRegen:.55,range:235,screenOffset:14,promotionXP:10},
+ C:{cost:60,hp:160,mana:52,manaRegen:.75,range:250,screenOffset:6,promotionXP:18},
+ B:{cost:75,hp:190,mana:70,manaRegen:.95,range:265,screenOffset:-4,promotionXP:28},
+ A:{cost:90,hp:225,mana:90,manaRegen:1.15,range:280,screenOffset:-14,promotionXP:40},
+ S:{cost:150,hp:280,mana:120,manaRegen:1.45,range:300,screenOffset:-26,promotionXP:55},
+ SS:{cost:300,hp:360,mana:160,manaRegen:1.85,range:325,screenOffset:-38,promotionXP:75},
+ SSS:{cost:450,hp:460,mana:210,manaRegen:2.30,range:350,screenOffset:-50,promotionXP:100},
+ 'SSS+':{cost:600,hp:600,mana:280,manaRegen:2.90,range:380,screenOffset:-62,promotionXP:130},
+ 'SSS+ Type I':{cost:750,hp:760,mana:360,manaRegen:3.60,range:410,screenOffset:-74,promotionXP:165},
+ 'SSS+ Type II':{cost:900,hp:950,mana:460,manaRegen:4.50,range:445,screenOffset:-86,promotionXP:205},
+ 'SSS+ Type III':{cost:1500,hp:1250,mana:620,manaRegen:6.00,range:485,screenOffset:-100,promotionXP:250},
+ 'SSS+ Type IV':{cost:3000,hp:1750,mana:900,manaRegen:8.50,range:535,screenOffset:-115,promotionXP:300},
+ 'SSS+ Type V':{cost:15000,hp:3000,mana:1600,manaRegen:14.00,range:620,screenOffset:-135,promotionXP:400}
 };
-for(const rank of V35_RANK_ORDER)RANK_PRICE[rank]=V35_RANK_PROFILES[rank].cost;
+for(const rank of V35_RANK_ORDER){RANK_PRICE[rank]=V35_RANK_PROFILES[rank].cost;RANK_XP_FLOOR[rank]=V35_RANK_PROFILES[rank].promotionXP}
 
-const v35RankScoreOf=rankScoreOf;
-rankScoreOf=function(a){const rank=typeof a==='string'?a:classOf(a),index=V35_RANK_ORDER.indexOf(rank);return index>=0?index+1:v35RankScoreOf(a)};
 function rankProfileOf(a){const rank=typeof a==='string'?a:classOf(a);return V35_RANK_PROFILES[rank]||V35_RANK_PROFILES.F}
-function syncRankResources(a,refill=false){
+rankScoreOf=function(a){const rank=typeof a==='string'?a:classOf(a),i=V35_RANK_ORDER.indexOf(rank);return i<0?1:i+1};
+rankLabelXP=function(xp){let rank='F';for(const name of V35_RANK_ORDER)if(xp>=(V35_RANK_PROFILES[name].promotionXP||0))rank=name;return `${rank}·${Math.max(0,xp-(V35_RANK_PROFILES[rank].promotionXP||0))}`};
+function rankRangeOf(a){return rankProfileOf(a).range}
+function ensureRankVitals(a,fill=false){
  if(!a||a.isCommander)return a;
- const rank=classOf(a),p=rankProfileOf(rank),oldMaxHp=Number.isFinite(a.maxHp)?a.maxHp:100,oldMaxMana=Number.isFinite(a.maxMana)?a.maxMana:0,changed=a.resourceRank!==rank;
- a.maxHp=p.hp;a.maxMana=p.mana;a.resourceRank=rank;
- if(refill||!Number.isFinite(a.hp))a.hp=p.hp;else if(changed)a.hp=Math.min(p.hp,Math.max(0,a.hp)+Math.max(0,p.hp-oldMaxHp));else a.hp=Math.min(p.hp,Math.max(0,a.hp));
- if(refill||!Number.isFinite(a.mana))a.mana=p.mana;else if(changed)a.mana=Math.min(p.mana,Math.max(0,a.mana)+Math.max(0,p.mana-oldMaxMana));else a.mana=Math.min(p.mana,Math.max(0,a.mana));
+ const p=rankProfileOf(a),oldMax=Number.isFinite(a.maxHp)?a.maxHp:p.hp;
+ a.maxHp=p.hp;a.maxMana=p.mana;
+ if(fill||!Number.isFinite(a.hp))a.hp=p.hp;else a.hp=Math.max(0,Math.min(p.hp,a.hp+(p.hp-oldMax)));
+ if(fill||!Number.isFinite(a.mana))a.mana=p.mana;else a.mana=Math.max(0,Math.min(p.mana,a.mana));
  return a
 }
-function rankAttackRange(a){return a&&a.isCommander?BASE_RANGE:rankProfileOf(a).range}
-function rangedManaCost(a,d){if(!a||a.isCommander||d<=V35_FREE_RANGE)return 0;return Math.max(1,Math.ceil((d-V35_FREE_RANGE)/V35_RANGE_MANA_STEP))}
-function hasRangedMana(a,d){syncRankResources(a,false);return !a||a.isCommander||a.mana+1e-9>=rangedManaCost(a,d)}
-function spendRangedMana(a,d){const cost=rangedManaCost(a,d);if(a&&!a.isCommander&&cost>0)a.mana=Math.max(0,a.mana-cost);return cost}
 
 const v35BaseBuyMusketeer=buyMusketeer;
-buyMusketeer=function(team,rank='F',free=false){const a=v35BaseBuyMusketeer(team,rank,free);if(a)syncRankResources(a,true);return a};
+buyMusketeer=function(team,rank='F',free=false){const a=v35BaseBuyMusketeer(team,rank,free);if(a)ensureRankVitals(a,true);return a};
 const v35BaseAwardKill=awardKill;
 awardKill=function(killer,victim,method='musket'){
- if(!killer)return v35BaseAwardKill(killer,victim,method);
- syncRankResources(killer,false);const beforeHp=killer.hp,beforeMana=killer.mana,beforeMaxMana=killer.maxMana,healingBefore=healingDone[killer.team];
- const out=v35BaseAwardKill(killer,victim,method);const afterRank=classOf(killer),p=rankProfileOf(afterRank),promotionMana=Math.max(0,p.mana-beforeMaxMana),desiredHp=Math.min(p.hp,beforeHp+XP_HEAL);
- killer.maxHp=p.hp;killer.hp=desiredHp;killer.maxMana=p.mana;killer.mana=Math.min(p.mana,beforeMana+promotionMana);killer.resourceRank=afterRank;healingDone[killer.team]=healingBefore+Math.max(0,desiredHp-beforeHp);return out
+ if(!killer||killer.isCommander)return v35BaseAwardKill(killer,victim,method);
+ ensureRankVitals(killer,false);const oldRank=classOf(killer),oldProfile=rankProfileOf(oldRank),oldHp=killer.hp,oldMana=killer.mana;
+ const out=v35BaseAwardKill(killer,victim,method),newProfile=rankProfileOf(killer),promoted=classOf(killer)!==oldRank;
+ killer.maxHp=newProfile.hp;killer.maxMana=newProfile.mana;
+ killer.hp=Math.min(newProfile.hp,Math.min(oldProfile.hp,oldHp+XP_HEAL)+(promoted?Math.max(0,newProfile.hp-oldProfile.hp):0));
+ killer.mana=Math.min(newProfile.mana,oldMana+(promoted?Math.max(0,newProfile.mana-oldProfile.mana):0));
+ return out
 };
 
-function segmentDistance(ax,ay,bx,by,px,py){const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return{distance:Math.hypot(px-ax,py-ay),t:0};const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l2)),x=ax+t*dx,y=ay+t*dy;return{distance:Math.hypot(px-x,py-y),t}}
-function findShieldingTarget(attacker,target){
- if(!attacker||!target||target.isCommander)return target;
- const targetScore=rankScoreOf(target);if(targetScore<=1)return target;
- let shield=null,bestT=2;
- for(const ally of actors){
-  if(!ally.alive||ally.isCommander||ally.team!==target.team||ally.id===target.id||rankScoreOf(ally)>=targetScore)continue;
-  const line=segmentDistance(attacker.x,attacker.y,target.x,target.y,ally.x,ally.y);
-  if(line.t<=.08||line.t>=.92||line.distance>V35_SHIELD_LANE)continue;
-  if(line.t<bestT){bestT=line.t;shield=ally}
- }
- return shield||target
-}
-const shieldingInterceptions=[0,0];
+const v35BaseBeginCharge=beginCharge;
+beginCharge=function(a,target){
+ ensureRankVitals(a,false);if(!a||a.isCommander||!rankAtLeast(a,'E')||a.mana<V35_BAYONET_MANA_COST)return false;
+ const started=v35BaseBeginCharge(a,target);if(started)a.mana=Math.max(0,a.mana-V35_BAYONET_MANA_COST);return started
+};
 const v35BaseFire=fire;
 fire=function(a,target,d,volley=false){
- const actual=findShieldingTarget(a,target),actualD=actual?Math.hypot(actual.x-a.x,actual.y-a.y):d;
- if(!a.isCommander&&actualD>rankAttackRange(a)+1e-9)return false;
- if(!hasRangedMana(a,actualD))return false;
- const fired=v35BaseFire(a,actual,actualD,volley);
- if(fired){spendRangedMana(a,actualD);if(actual&&target&&actual.id!==target.id)shieldingInterceptions[actual.team]++}
- return fired
+ ensureRankVitals(a,false);let formalVolley=volley;
+ if(volley&&rankAtLeast(a,'C')){if(a.mana<V35_VOLLEY_MANA_COST)formalVolley=false;else a.mana=Math.max(0,a.mana-V35_VOLLEY_MANA_COST)}
+ return v35BaseFire(a,target,d,formalVolley)
 };
-const v35BaseFireFortress=fireFortress;
-fireFortress=function(a,fort,d){if(!a.isCommander&&d>rankAttackRange(a)+1e-9)return false;if(!hasRangedMana(a,d))return false;const fired=v35BaseFireFortress(a,fort,d);if(fired)spendRangedMana(a,d);return fired};
 
-const V35_EXTENDED_FIRE_ORDERS=new Set(['ADVANCE','HOLD','DEFEND','SIEGE','BREACH','TURN']);
-const v35BaseUpdateMusketeer=updateMusketeer;
-updateMusketeer=function(a,dt){
- v35BaseUpdateMusketeer(a,dt);if(!a.alive||a.reload>0||(a.disarm||0)>0||a.panic>0||a.chargeTimer>0)return;
- syncRankResources(a,false);const c=companyFor(a.team,a.company),command=c?.command||'NO COMMAND';if(!V35_EXTENDED_FIRE_ORDERS.has(command)||!soldierCommander(a))return;
- const maxRange=rankAttackRange(a);if(maxRange<=BASE_RANGE)return;
- const enemy=combatEnemy(a),enemyD=enemy?Math.hypot(enemy.x-a.x,enemy.y-a.y):Infinity;
- if(enemy&&enemyD>BASE_RANGE&&enemyD<=maxRange){fire(a,enemy,enemyD);return}
- if(command==='SIEGE'||command==='BREACH'){const fort=fortresses[1-a.team],fortD=Math.abs(fort.x-a.x);if(fortD>FORT_ATTACK_RANGE&&fortD<=maxRange&&(enemyD>maxRange||!enemy))fireFortress(a,fort,fortD)}
-};
-const v35BaseUpdateActors=updateActors;
-updateActors=function(dt){for(const a of actors)if(a.alive&&!a.isCommander){syncRankResources(a,false);const p=rankProfileOf(a);a.mana=Math.min(a.maxMana,a.mana+p.manaRegen*dt)}v35BaseUpdateActors(dt)};
-
+// Economy v2: purchase price + flat income + kill bounty. Soldier maintenance and rank-quality income are removed.
 incomeRate=function(team){return PASSIVE_INCOME+(fortresses[team].rank==='E'?E_FORT_INCOME_BONUS:0)};
 upkeepRate=function(){return 0};
-netIncomeRate=function(team){return incomeRate(team)};
 upkeepPressure=function(){return 0};
+netIncomeRate=function(team){return incomeRate(team)};
 
-function teamResourceTotals(team){const men=activeMusketeers(team);return men.reduce((r,a)=>{syncRankResources(a,false);r.hp+=Math.max(0,a.hp);r.maxHp+=a.maxHp;r.mana+=a.mana;r.maxMana+=a.maxMana;return r},{hp:0,maxHp:0,mana:0,maxMana:0})}
-function ensureV35UI(){
- const anchor=document.getElementById('reloadingStat');if(anchor&&!document.getElementById('hpPoolStat')){const hp=document.createElement('div'),mana=document.createElement('div');hp.className=mana.className='metric';hp.id='hpPoolStat';mana.id='manaPoolStat';hp.innerHTML='<span>Total HP</span><span data-side="left">0/0</span><span data-side="right">0/0</span>';mana.innerHTML='<span>Mana</span><span data-side="left">0/0</span><span data-side="right">0/0</span>';anchor.parentNode.insertBefore(hp,anchor);anchor.parentNode.insertBefore(mana,anchor)}
- const upkeep=document.querySelector('#upkeepStat span:first-child'),paid=document.querySelector('#upkeepPaidStat span:first-child');if(upkeep)upkeep.textContent='Maintenance / s';if(paid)paid.textContent='Maintenance paid';const pricing=document.getElementById('pricingStat');if(pricing)pricing.textContent='Rank table v1'
+const V35_SHIELD_DEPTH=125,V35_SHIELD_LANE=90,V35_SHIELD_PENALTY=260;
+function screenedTargetScore(attacker,target,pool){
+ const d=Math.hypot(target.x-attacker.x,target.y-attacker.y),dir=attacker.team===0?1:-1,targetForward=(target.x-attacker.x)*dir,targetRank=rankScoreOf(target);let penalty=0;
+ if(!target.isCommander&&targetForward>0)for(const shield of pool){
+  if(shield===target||shield.isCommander||rankScoreOf(shield)>=targetRank)continue;
+  const shieldForward=(shield.x-attacker.x)*dir,gap=targetForward-shieldForward;
+  if(shieldForward>=-12&&gap>0&&gap<=V35_SHIELD_DEPTH&&Math.abs(shield.y-target.y)<=V35_SHIELD_LANE)penalty=Math.max(penalty,V35_SHIELD_PENALTY+(targetRank-rankScoreOf(shield))*18)
+ }
+ return d+penalty+(target.isCommander?35:0)
 }
-const v35BaseUpdateUI=updateUI;
-updateUI=function(){v35BaseUpdateUI();ensureV35UI();const left=teamResourceTotals(0),right=teamResourceTotals(1);setPair('hpPoolStat',`${Math.round(left.hp)}/${left.maxHp}`,`${Math.round(right.hp)}/${right.maxHp}`);setPair('manaPoolStat',`${Math.round(left.mana)}/${left.maxMana}`,`${Math.round(right.mana)}/${right.maxMana}`)};
+function chooseScreenedTarget(attacker,pool){if(!pool.length)return null;return [...pool].sort((x,y)=>screenedTargetScore(attacker,x,pool)-screenedTargetScore(attacker,y,pool)||x.id-y.id)[0]}
+enemyOf=function(a){return chooseScreenedTarget(a,actors.filter(e=>e.alive&&e.team!==a.team))};
+combatEnemy=function(a){const pool=actors.filter(e=>e.alive&&e.team!==a.team),rear=pool.filter(e=>rearThreat(a,e));return chooseScreenedTarget(a,rear.length?rear:pool)};
+siegeEnemy=function(a){
+ const pool=actors.filter(e=>e.alive&&e.team!==a.team&&!e.isCommander&&Math.hypot(e.x-a.x,e.y-a.y)<=REAR_ALERT_RANGE),rear=pool.filter(e=>rearThreat(a,e)),commander=actors.filter(e=>e.alive&&e.team!==a.team&&e.isCommander&&Math.hypot(e.x-a.x,e.y-a.y)<=92);
+ return chooseScreenedTarget(a,rear.length?rear:pool)||chooseScreenedTarget(a,commander)
+};
+breachEnemy=function(a){
+ const pool=actors.filter(e=>e.alive&&e.team!==a.team&&Math.hypot(e.x-a.x,e.y-a.y)<=BREACH_THREAT_RANGE),rear=pool.filter(e=>rearThreat(a,e)&&Math.hypot(e.x-a.x,e.y-a.y)<=BREACH_REAR_EMERGENCY_RANGE);
+ return chooseScreenedTarget(a,rear.length?rear:pool)
+};
+function applyRankScreenFormation(a,dt){
+ if(!a||!a.alive||a.isCommander||a.rejoining||a.chargeTimer>0||(a.disarm||0)>0||(a.panic||0)>0)return;
+ const c=companyFor(a.team,a.company),authority=c&&activeCommandSource(c);if(!c||!authority||['SIEGE','BREACH','CHARGE','TURN','RALLY','REGROUP'].includes(c.command))return;
+ const e=combatEnemy(a);if(e&&Math.hypot(e.x-a.x,e.y-a.y)<85)return;
+ const center=companyCenter(a.team,a.company);if(!center)return;const dir=a.team===0?1:-1,target=center.x+dir*rankProfileOf(a).screenOffset;
+ a.x=approachValue(a.x,target,10,dt);a.x=Math.max(28,Math.min(W-28,a.x))
+}
+const v35BaseUpdateMusketeer=updateMusketeer;
+updateMusketeer=function(a,dt){
+ v35BaseUpdateMusketeer(a,dt);if(!a||!a.alive)return;ensureRankVitals(a,false);applyRankScreenFormation(a,dt);
+ if(a.reload>0||a.rejoining||(a.disarm||0)>0||(a.panic||0)>0||a.chargeTimer>0||!soldierCommander(a))return;
+ const c=companyFor(a.team,a.company),command=c?.command||'NO COMMAND';if(command==='VOLLEY'&&c?.volleyTimer>0)return;const e=command==='BREACH'?breachEnemy(a):command==='SIEGE'?siegeEnemy(a):combatEnemy(a),range=rankRangeOf(a);
+ if(e){const d=Math.hypot(e.x-a.x,e.y-a.y);if(d>BASE_RANGE&&d<=range)fire(a,e,d);return}
+ const fort=fortresses[1-a.team],d=Math.abs(fort.x-a.x);if((command==='SIEGE'||command==='BREACH')&&d>FORT_ATTACK_RANGE&&d<=range)fireFortress(a,fort,d)
+};
+const v35BaseUpdateActors=updateActors;
+updateActors=function(dt){for(const a of actors)if(a.alive&&!a.isCommander){ensureRankVitals(a,false);const p=rankProfileOf(a);a.mana=Math.min(a.maxMana,a.mana+p.manaRegen*dt)}v35BaseUpdateActors(dt)};
+
+const v35BaseActorDiagnostic=actorDiagnostic;
+actorDiagnostic=function(a){const d=v35BaseActorDiagnostic(a);if(a&&!a.isCommander){ensureRankVitals(a,false);d.maxHp=a.maxHp;d.mana=+a.mana.toFixed(2);d.maxMana=a.maxMana;d.range=rankRangeOf(a)}return d};
+const v35BasePayload=currentDiagnosticPayload;
+currentDiagnosticPayload=function(){const p=v35BasePayload();p.version=V35_VERSION;p.state=window.__battleSim.state();p.economyRevision='zero-maintenance-ranked-economy';return p};
+exportCurrentState=function(){const payload=currentDiagnosticPayload(),t=Math.floor(simTime),name=`musketeer-state-v${V35_VERSION}-seed-${seed>>>0}-war-${warNumber}-t-${t}s.json`;downloadJson(name,payload);return payload};
 
 const v35BaseState=window.__battleSim.state;
-window.__battleSim.state=()=>{const state=v35BaseState(),profiles=Object.fromEntries(V35_RANK_ORDER.map(rank=>[rank,{...V35_RANK_PROFILES[rank]}]));state.economy.rankPrices=Object.fromEntries(V35_RANK_ORDER.map(rank=>[rank,RANK_PRICE[rank]]));state.economy.upkeepRate=0;state.economy.upkeepRates=[0,0];state.economy.netIncomeRates=[incomeRate(0),incomeRate(1)];state.economy.incomeRates=[incomeRate(0),incomeRate(1)];state.economy.incomeFormula='gross = base passive income + fortress bonus; net = gross; soldier maintenance = $0';state.economy.noSoldierMaintenance=true;state.economy.rankIncomeBonus=false;state.economy.revision=V35_ECONOMY_ID;state.economy.candidateVersion='3.4.3';state.classProgression.rankProfiles=profiles;state.classProgression.locked=V35_RANK_ORDER.filter(x=>!PURCHASABLE_RANKS.includes(x));state.classProgression.correctedFinalRank='SSS+ Type V';state.rankResources={candidateVersion:'3.4.3',revision:V35_ECONOMY_ID,freeFireRange:V35_FREE_RANGE,rangeManaStep:V35_RANGE_MANA_STEP,totals:[teamResourceTotals(0),teamResourceTotals(1)],shieldingInterceptions:[...shieldingInterceptions],shieldDoctrine:'lower-rank musketeers physically between a shooter and a higher-rank ally intercept musket fire',extendedRangeRequiresMana:true};state.command.shieldDoctrine=state.rankResources.shieldDoctrine;return state};
-
-const v35BaseDiagnosticPayload=currentDiagnosticPayload;
-currentDiagnosticPayload=function(){const payload=v35BaseDiagnosticPayload();payload.candidateVersion='3.4.3';payload.economyRevision=V35_ECONOMY_ID;payload.rankSystem={profiles:Object.fromEntries(V35_RANK_ORDER.map(rank=>[rank,{...V35_RANK_PROFILES[rank]}])),unlocked:[...PURCHASABLE_RANKS],locked:V35_RANK_ORDER.filter(x=>!PURCHASABLE_RANKS.includes(x)),freeFireRange:V35_FREE_RANGE,shieldingInterceptions:[...shieldingInterceptions],noSoldierMaintenance:true};for(const entry of payload.actors){const a=actors.find(x=>x.id===entry.id);if(!a||a.isCommander)continue;syncRankResources(a,false);entry.maxHp=a.maxHp;entry.mana=+a.mana.toFixed(2);entry.maxMana=a.maxMana;entry.attackRange=rankAttackRange(a);entry.rankRole=rankProfileOf(a).role}return payload};
-window.__battleSim.diagnosticPayload=currentDiagnosticPayload;window.GameTest.exportPayload=currentDiagnosticPayload;
-
+window.__battleSim.state=()=>{
+ const state=v35BaseState();state.version='3.5';state.phase=4;state.patchVersion=V35_VERSION;state.rework='ranked-economy-hp-mana-range-screening';
+ state.economy.rankPrices=Object.fromEntries(V35_RANK_ORDER.map(r=>[r,RANK_PRICE[r]]));state.economy.purchasableRanks=[...PURCHASABLE_RANKS];state.economy.upkeepRate=0;state.economy.upkeepRates=[0,0];state.economy.netIncomeRates=[netIncomeRate(0),netIncomeRate(1)];state.economy.incomeRates=[incomeRate(0),incomeRate(1)];state.economy.maintenanceRemoved=true;state.economy.rankQualityIncomeRemoved=true;state.economy.incomeFormula='gross = flat passive income + fortress bonus; net = gross; kills pay 50% of defeated rank purchase price; soldiers have no recurring maintenance cost';
+ state.rankSystem={order:[...V35_RANK_ORDER],unlocked:[...PURCHASABLE_RANKS],futureRanksLocked:true,correctedFinalRank:'SSS+ Type V',profiles:Object.fromEntries(V35_RANK_ORDER.map(r=>[r,{...V35_RANK_PROFILES[r]}])),manaUses:{bayonetCharge:V35_BAYONET_MANA_COST,formalVolleyShot:V35_VOLLEY_MANA_COST,basicMusket:0},shielding:{lowerRanksForward:true,targetScreenDepth:V35_SHIELD_DEPTH,targetScreenLane:V35_SHIELD_LANE,formationExcludedOrders:['SIEGE','BREACH','CHARGE','TURN','RALLY','REGROUP']},rangePolicy:'each higher rank has a strictly longer musket and organized fortress-fire range'};
+ state.classProgression.futurePolicy='every unlocked rank may be bought or earned; future ranks remain locked to their roadmap phase even though their economy/HP/mana/range profiles are defined';
+ return state
+};
 const v35BaseValidate=window.GameTest.validate;
-window.GameTest.validate=()=>{const v=v35BaseValidate(),invalidRankResources=actors.some(a=>a.alive&&!a.isCommander&&(()=>{const p=rankProfileOf(a);return !Number.isFinite(a.maxHp)||a.maxHp!==p.hp||!Number.isFinite(a.hp)||a.hp<-.001||!Number.isFinite(a.maxMana)||a.maxMana!==p.mana||!Number.isFinite(a.mana)||a.mana<-.001||a.mana>a.maxMana+.001})()),invalidEconomy=Math.abs(upkeepRate(0))>.001||V35_RANK_ORDER.some(rank=>RANK_PRICE[rank]!==V35_RANK_PROFILES[rank].cost);return{...v,invalidRankResources,invalidEconomy,ok:v.ok&&!invalidRankResources&&!invalidEconomy}};
+window.GameTest.validate=()=>{const v=v35BaseValidate(),invalidRankVitals=actors.some(a=>a.alive&&!a.isCommander&&(!V35_RANK_PROFILES[classOf(a)]||!Number.isFinite(a.hp)||!Number.isFinite(a.maxHp)||a.hp<-.001||a.hp>a.maxHp+.001||!Number.isFinite(a.mana)||!Number.isFinite(a.maxMana)||a.mana<-.001||a.mana>a.maxMana+.001));return{...v,invalidRankVitals,ok:v.ok&&!invalidRankVitals,patchVersion:V35_VERSION}};
 
-const v35BaseReset=reset;
-reset=function(fixedSeed=null){shieldingInterceptions[0]=shieldingInterceptions[1]=0;const out=v35BaseReset(fixedSeed);updateUI();return out};
-window.__battleSim.reset=reset;document.getElementById('restartBtn').onclick=()=>reset();
-Object.assign(window.__battleSim.test,{buyMusketeer,awardKill,fire,fireFortress,updateMusketeer,updateActors,incomeRate,upkeepRate,netIncomeRate,upkeepPressure,rankScoreOf,rankProfileOf,rankAttackRange,rangedManaCost,hasRangedMana,spendRangedMana,syncRankResources,findShieldingTarget,teamResourceTotals,rankProfiles:()=>V35_RANK_PROFILES,rankOrder:()=>[...V35_RANK_ORDER],shieldingInterceptions:()=>[...shieldingInterceptions]});
-window.GameTest.state=()=>window.__battleSim.state();ensureV35UI();updateUI();
+Object.assign(window.__battleSim.test,{buyMusketeer,awardKill,beginCharge,fire,updateMusketeer,updateActors,enemyOf,combatEnemy,siegeEnemy,breachEnemy,rankProfileOf,rankRangeOf,ensureRankVitals,screenedTargetScore,chooseScreenedTarget,applyRankScreenFormation,incomeRate,upkeepRate,upkeepPressure,netIncomeRate});
+window.__battleSim.exportState=exportCurrentState;window.__battleSim.diagnosticPayload=currentDiagnosticPayload;window.GameTest.state=()=>window.__battleSim.state();window.GameTest.exportPayload=currentDiagnosticPayload;
+const exportButton=document.getElementById('exportStateBtn');if(exportButton)exportButton.onclick=exportCurrentState;
+const upkeepLabel=document.querySelector('#upkeepStat span:first-child');if(upkeepLabel){upkeepLabel.textContent='Maintenance / s';upkeepLabel.title='Soldiers have no recurring maintenance cost in v3.5.'}
+document.title='Musketeer Battle Simulator — Phase 4 v3.5';const v35Badge=document.querySelector('.version');if(v35Badge)v35Badge.textContent='v3.5';
+updateUI();
